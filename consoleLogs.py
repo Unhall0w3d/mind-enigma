@@ -12,4 +12,8 @@ print('Beginning download of Phone Console logs from ' + ipAddress)
 subprocess.call ('wget -r --accept "messages*, *.tar.gz" http://' + ipAddress + '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destFolder, shell=True)
 
 #Inform user download is complete, indicate where files are stored.
+print('#################################################################################')
+print('#################################################################################')
 print('Files have been stored in ' + destFolder + 'in a folder named ' + ipAddress + '.')
+print('#################################################################################')
+print('#################################################################################')
