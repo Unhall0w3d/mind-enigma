@@ -1,7 +1,8 @@
 #!/usr/var/python
 #####################################
 # Script created by Ken Perry, 2020 #
-# Help by Mark Barba                #
+# Code Contributions by:            #
+# Mark Barba                        #
 #####################################
 
 import re
