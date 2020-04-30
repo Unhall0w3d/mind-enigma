@@ -29,7 +29,7 @@ for n in ipAddress:
         results = soup.find(text=re.compile('SEP*|CIPC*'))
 #looking for instance of "Active" on the webpage indicating device is registered to a given CCM. Returned as variable 'results2'
         results2 = soup.find_all(text=re.compile('Active'))
-#conditional statement that dictates if "Active" is not found, indicate the phone is not registered. Otherwise report the device it is registered to. (e.g. cucmpub.ipt.local Active)
+#conditional statement that dictates if "Active" is not found, report only the device model and name. Otherwise report the device it is registered to. (e.g. cucmpub.ipt.local Active)
         if results2 is None:
                 print(results)
         else:
