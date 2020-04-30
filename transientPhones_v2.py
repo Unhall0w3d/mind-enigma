@@ -24,6 +24,6 @@ for n in ipAddress:
         results2 = soup.find_all(text=re.compile('Active'))
 #conditional statement that dictates if "Active" is not found, indicate the phone is not registered. Otherwise report the device it is registered to. (e.g. cucmpub.ipt.local Active)
         if results2 is None:
-                print(results, + " is not registered to CCM.")
+                print(results)
         else:
                 print(results, results2)
