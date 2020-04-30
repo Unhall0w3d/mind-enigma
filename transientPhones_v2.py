@@ -1,3 +1,9 @@
+#!/usr/var/python
+#####################################
+# Script created by Ken Perry, 2020 #
+# Help by Mark Barba                #
+#####################################
+
 import re
 import requests
 from bs4 import BeautifulSoup
