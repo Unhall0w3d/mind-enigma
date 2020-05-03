@@ -3,6 +3,7 @@
 # Script created by Ken Perry, 2020 #
 # Code Contributions by:            #
 # Mark Barba                        #
+# Juliana Xu                        #
 #####################################
 
 import re
