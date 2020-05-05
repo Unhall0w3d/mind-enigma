@@ -6,38 +6,51 @@
 # Juliana Xu                        #
 #####################################
 
-import re
-import requests
+import re, requests, lxml
 from bs4 import BeautifulSoup
 
-#Define how many phones we need to hit
-x = input('How many phones?: ')
-x = int(x)
+def phonecollection():
+	x = input('How many phones?: ')
+	x = int(x)
+	global ipaddr
+	ipaddr = []
+	for i in range(x):
+		ipaddr.append(input('What is the phone IP address?: '))
 
-#Collect IP addresses in tuple (list)
-ipAddress = []
 
-#Here we loop to grab the list of IP Addresses to access.
-for i in range(x):
-	ipAddress.append(input('What is the phone IP address?: '))
-
-#Here we loop to access each IP address provided (equivalent of Network Configuration page) to collect Device Type + MAC + Registered state.
-for n in ipAddress:
+def webscrape():
+	url = 'http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.configuration'
+	url2 = 'http://' + n + '/localmenus.cgi?func=219'
 	try:
-		global results
-		global results2
-		URL = 'http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.configuration' #URL is dynamically created based on IPs collected
-		page = requests.get(URL, timeout=6)
-		soup = BeautifulSoup(page.content, 'html.parser')
-#looking for instance of SEP* or CIPC*, such as CIPCKPERRY or SEPAABBCCDDEEFF. Returned as variable 'results'
-		results = soup.find(text=re.compile('SEP*|CIPC*'))
-#looking for instance of "Active" on the webpage indicating device is registered to a given CCM. Returned as variable 'results2'
-		results2 = soup.find_all(text=re.compile('Active'))
-#conditional statement that dictates if "Active" is not found, report only the device model and name. Otherwise report the device it is registered to. (e.g. cucmpub.ipt.local Active)
+		response = requests.get(url, timeout=6)
+		if response.status_code == 200:
+			try:
+				page = requests.get(url, timeout=6)
+				soup = BeautifulSoup(page.content, 'lxml')
+				results = soup.find(text=re.compile('SEP*|CIPC*'))
+				results2 = soup.find_all(text=re.compile('Active'))
+				print(results, results2)
+			except:
+				print('Connection to ' + n + ' timed out. Trying next.')
+		elif response.status_code == 401:
+			try:
+				page = requests.get(url2, timeout=6)
+				soup = BeautifulSoup(page.content, 'lxml')
+				soup2 = BeautifulSoup(page, 'lxml')
+				results = soup2.find('tr', text=re.compile('Cisco'))
+				results2 = soup.find(text=re.compile('SEP*'))
+				results3 = soup.find_all(text=re.compile('Active'))
+				print(results, results2, results3)
+			except:
+				print('Connection to ' + n + ' timed out. Trying next.')
+		else:
+			print('This is not a phone I am configured to handle. Exiting')
 	except:
-		print('Connection to ' + n + ' timed out. Trying next.')
+		print("We've had an error. Sorry! Talk to the dev or debug code by opening up the except clauses.")
 
-if results2 is None:
-	print(results)
-else:
-	print(results, results2)
+# Run collection for how many phones we will connect to, as well as the IP Addresses.
+phonecollection()
+
+# Now loop for each appended IP Address and run webScrape function
+for n in ipaddr:
+	webscrape()
