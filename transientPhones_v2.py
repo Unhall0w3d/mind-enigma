@@ -22,17 +22,13 @@ def webscrape():
 	url = 'http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.configuration'
 	url2 = 'http://' + n + '/localmenus.cgi?func=219'
 	url3 = 'http://' + n + '/localmenus.cgi?func=604'
-	url4 = 'http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.device'
 	try:
 		response = requests.get(url, timeout=6)
 		if response.status_code == 200:
 			page = requests.get(url, timeout=6)
-			page2 = requests.get(url4, timeout=6)
 			soup = BeautifulSoup(page.content, 'lxml')
-			soup2 = BeautifulSoup(page2.content, 'lxml')
 			results = soup.find(text=re.compile('SEP*|CIPC*'))
 			results2 = soup.find_all(text=re.compile('Active'))
-			#results3 = soup2.find(text=re.compile('Serial*'))
 			print(results, results2)
 		elif response.status_code != 200:
 			page = requests.get(url2, timeout=6)
@@ -42,8 +38,7 @@ def webscrape():
 			results = soup2.find(text=re.compile('Cisco'))
 			results2 = soup.find(text=re.compile('SEP*'))
 			results3 = soup.find_all(text=re.compile('Active'))
-			results4 = soup2.find(text=re.compile('Serial*'))
-			print(results, results2, results3, results4)
+			print(results, results2, results3)
 		else:
 			print('This is not a phone I am configured to handle. Exiting')
 	except requests.exceptions.Timeout:
