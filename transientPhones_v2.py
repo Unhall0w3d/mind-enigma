@@ -5,11 +5,13 @@
 # Script created by Ken Perry, 2020 #
 #####################################
 
-# Modules
+# Modules Imported for Script Functionality
 import re
 import requests
 from bs4 import BeautifulSoup
 
+# Define Variables Required Globally
+ipaddr = []
 
 # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
 # TO DO: Add exception for if non-number to re-prompt.
@@ -17,10 +19,10 @@ from bs4 import BeautifulSoup
 def phonecollection():
     x = input('How many phones?: ')
     x = int(x)
-    global ipaddr
     ipaddr = []
     for i in range(x):
         ipaddr.append(input('What is the phone IP address?: '))
+    return ipaddr
 
 
 # Web Scrape function that uses requests to get webpage content.
@@ -56,7 +58,7 @@ def phoneregcheck():
 
 # Run collection for how many phones we will connect to, as well as the IP Addresses.
 # TO DO: Create prompt with options, based on option selected (e.g. 1), run function tied to (1)
-phonecollection()
+ipaddr = phonecollection()
 
 # Now loop for each appended IP Address and run webScrape function
 # TO DO: Find a better way to do this so that it runs subsequently.
