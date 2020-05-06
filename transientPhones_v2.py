@@ -1,13 +1,17 @@
 #!/usr/var/python
-#-*- code:UTF-8 -*-
+# -*- code:UTF-8 -*-
 
 #####################################
 # Script created by Ken Perry, 2020 #
 #####################################
 
+# Modules
 import re, requests, lxml
 from bs4 import BeautifulSoup
 
+# Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
+# TO DO: Add exception for if non-number to re-prompt.
+# TO DO: Add exception/method to allow script to proceed if < x IP Addresses are provided.
 def phonecollection():
 	x = input('How many phones?: ')
 	x = int(x)
@@ -16,7 +20,10 @@ def phonecollection():
 	for i in range(x):
 		ipaddr.append(input('What is the phone IP address?: '))
 
-
+# Web Scrape function that uses requests to get webpage content.
+# Content is then parsed by lxml and BeautifulSoup is used to extract data based on regular expression.
+# TO DO: Scope in variables to appropriate if/elif
+# TO DO: Fail the script more to form proper exceptions
 def webscrape():
 	url = 'http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.configuration'
 	url2 = 'http://' + n + '/localmenus.cgi?func=219'
@@ -46,8 +53,11 @@ def webscrape():
 		print('Something failed beyond a simple timeout. Contact the script dev with details from your attempt.')
 
 # Run collection for how many phones we will connect to, as well as the IP Addresses.
+# TO DO: Create prompt with options, based on option selected (e.g. 1), run function tied to (1)
 phonecollection()
 
 # Now loop for each appended IP Address and run webScrape function
+# TO DO: Find a better way to do this so that it runs subsequently.
+# TO DO: Also ensure it does not contain webscrape as nested function so phonecollection method can be used elsewhere.
 for n in ipaddr:
 	webscrape()
