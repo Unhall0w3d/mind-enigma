@@ -12,7 +12,6 @@ from bs4 import BeautifulSoup
 
 
 # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
-# TO DO: Add exception for if non-number to re-prompt.
 # TO DO: Add exception/method to allow script to proceed if < x IP Addresses are provided.
 def phonecollection():
     num_phones = int(input('How many phones?: '))
@@ -27,7 +26,7 @@ def phonecollection():
 
 # Web Scrape function that uses requests to get webpage content.
 # Content is then parsed by lxml and BeautifulSoup is used to extract data based on regular expression.
-# TO DO: Scope in variables to appropriate if/elif
+# TO DO: Come up with method to have multiple URLs in dictionary (OrderedDict?) to try URL, if http 200 returned, proceed.
 # TO DO: Fail the script more to form proper exceptions
 def phoneregcheck(ip_addr):
     url = 'http://' + ip_addr + '/CGI/Java/Serviceability?adapter=device.statistics.configuration'
@@ -63,6 +62,4 @@ phone_ips = phonecollection()
 
 
 # Now loop for each appended IP Address and run webScrape function
-# TO DO: Find a better way to do this so that it runs subsequently.
-# TO DO: Ensure does not contain phoneregcheck as nested function so phonecollection method can be used elsewhere.
 [phoneregcheck(ip_addr) for ip_addr in phone_ips]
