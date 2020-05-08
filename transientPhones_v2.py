@@ -9,6 +9,7 @@
 import re
 import requests
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 
 
 # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
@@ -26,34 +27,28 @@ def phonecollection():
 
 # Web Scrape function that uses requests to get webpage content.
 # Content is then parsed by lxml and BeautifulSoup is used to extract data based on regular expression.
-# TO DO: Come up with method to have multiple URLs in dictionary (OrderedDict?) to try URL, if http 200 returned, proceed.
 # TO DO: Fail the script more to form proper exceptions
 def phoneregcheck(ip_addr):
-    url = 'http://' + ip_addr + '/CGI/Java/Serviceability?adapter=device.statistics.configuration'
-    url2 = 'http://' + ip_addr + '/localmenus.cgi?func=219'
-    # url3 = 'http://' + n + '/localmenus.cgi?func=604' -- URL used to pull Serial Number from older Cisco Conf phones.
-    # To be reused for SN Audit method once created.
-    try:
-        response = requests.get(url, timeout=6)
-        if response.status_code == 200:
-            page = requests.get(url, timeout=6)
-            soup = BeautifulSoup(page.content, 'lxml')
-            results = soup.find(text=re.compile('SEP*|CIPC*'))
-            results2 = soup.find_all(text=re.compile('Active'))
-            print(results, results2)
-        elif response.status_code != 200:
-            page = requests.get(url2, timeout=6)
-            soup = BeautifulSoup(page.content, 'lxml')
-            results = soup.find(text=re.compile('SEP*'))
-            results2 = soup.find_all(text=re.compile('Active'))
-            print(results, results2)
-        else:
-            print('This is not a phone I am configured to handle. Exiting')
-    except requests.exceptions.Timeout:
-        print('Connection to ' + ip_addr + ' timed out. Trying next.')
-    except Exception as e:
-        print('Something failed beyond a simple timeout. Contact the script dev with details from your attempt.')
-        print(e)
+    uris = OrderedDict({
+        'http://' + ip_addr + '/CGI/Java/Serviceability?adapter=device.statistics.configuration': ['SEP*|CIPC*', 'Active'],
+        'http://' + ip_addr + '/localmenus.cgi?fund=219': ['SEP*', 'Active'],
+        'http://' + ip_addr + '/DeviceInformation': ['SEP*'],
+    })
+    for uri, regex_list in uris.items():
+        try:
+            response = requests.get(uri, timeout=6)
+            if response.status_code == 200:
+                parser = BeautifulSoup(response.content, 'lxml')
+                for regex in regex_list:
+                    data = parser.find(text=re.compile(regex))
+                    if data:
+                        print(data)
+                break
+        except requests.exceptions.Timeout:
+            print('Connection to ' + ip_addr + ' timed out. Trying next.')
+        except Exception as e:
+            print('The script failed. Contact script dev with details from your attempt and failure.')
+            print(e)
 
 
 # Run collection for how many phones we will connect to, as well as the IP Addresses.
