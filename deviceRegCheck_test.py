@@ -42,4 +42,6 @@ def phoneregcheck(ip_addr):
 
 phone_ips = phonecollection()
 
+print('Script is running. Please wait, output will follow.')
+
 [phoneregcheck(ip_addr) for ip_addr in phone_ips]
