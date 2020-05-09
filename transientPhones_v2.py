@@ -34,6 +34,7 @@ def phoneregcheck(ip_addr):
         '/NetworkConfiguration': ['SEP*', 'Active'],
         '/Network_Setup.htm': ['ATA*|SEP*', 'Active'],
         '/Network_Setup.html': ['SEP*', 'Active'],
+        '/?adapter=device.statistics.configuration': ['DX*', 'Active'],
     })
     for uri, regex_list in uris.items():
         try:
