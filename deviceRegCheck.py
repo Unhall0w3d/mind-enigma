@@ -46,6 +46,8 @@ def phoneregcheck(ip_addr):
                     if data:
                         print(data)
                 break
+        except requests.exceptions.ConnectionError:
+            print('Far end ' + ip_addr + 'has closed the connection.')
         except requests.exceptions.Timeout:
             print('Connection to ' + ip_addr + ' timed out. Trying next.')
         except Exception as e:

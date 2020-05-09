@@ -13,7 +13,8 @@ for i in range(x):
 # Download files from the Serviceability page. This includes /FS/ directory storing console logs.
 for n in ipAddress:
     subprocess.call(
-        'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + n + '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destFolder,
+        'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + n +
+        '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destFolder,
         shell=True)
 
 # Inform user download is complete, indicate where files are stored.
