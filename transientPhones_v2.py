@@ -26,18 +26,18 @@ def phonecollection():
 
 
 # Web Scrape function that uses requests to get webpage content.
-# Content is then parsed by lxml and BeautifulSoup is used to extract data based on regular expression.
-# If you do not want to use lxml, or don't have it installed, modify 'lxml' to 'html.parser' in phoneregcheck()
-# TO DO: Fail the script more to form proper exceptions
+# Content is then parsed by lxml (or html.parser) and BeautifulSoup is used to extract data based on regular expression.
 def phoneregcheck(ip_addr):
     uris = OrderedDict({
-        'http://' + ip_addr + '/CGI/Java/Serviceability?adapter=device.statistics.configuration': ['SEP*|CIPC*', 'Active'],
-        'http://' + ip_addr + '/localmenus.cgi?func=219': ['SEP*', 'Active'],
-        'http://' + ip_addr + '/DeviceInformation': ['SEP*'],
+        '/CGI/Java/Serviceability?adapter=device.statistics.configuration': ['SEP*|CIPC*', 'Active'],
+        '/localmenus.cgi?func=219': ['SEP*', 'Active'],
+        '/NetworkConfiguration': ['SEP*', 'Active'],
+        '/Network_Setup.htm': ['ATA*|SEP*', 'Active'],
+        '/Network_Setup.html': ['SEP*', 'Active'],
     })
     for uri, regex_list in uris.items():
         try:
-            response = requests.get(uri, timeout=6)
+            response = requests.get(f'http://{ip_addr}{uri}', timeout=6)
             if response.status_code == 200:
                 parser = BeautifulSoup(response.content, 'lxml')
                 for regex in regex_list:
@@ -55,7 +55,6 @@ def phoneregcheck(ip_addr):
 # Run collection for how many phones we will connect to, as well as the IP Addresses.
 # TO DO: Create prompt with options, based on option selected (e.g. 1), run function tied to (1)
 phone_ips = phonecollection()
-
 
 # Now loop for each appended IP Address and run webScrape function
 [phoneregcheck(ip_addr) for ip_addr in phone_ips]
