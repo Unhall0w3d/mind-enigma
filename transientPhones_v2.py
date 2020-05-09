@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 
 # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
-# TO DO: Add exception/method to allow script to proceed if < x IP Addresses are provided.
+# TO DO: Modify phonecollection function to utilize input from file.
 def phonecollection():
     num_phones = int(input('How many phones?: '))
     if type(num_phones) != int:
@@ -27,11 +27,12 @@ def phonecollection():
 
 # Web Scrape function that uses requests to get webpage content.
 # Content is then parsed by lxml and BeautifulSoup is used to extract data based on regular expression.
+# If you do not want to use lxml, or don't have it installed, modify 'lxml' to 'html.parser' in phoneregcheck()
 # TO DO: Fail the script more to form proper exceptions
 def phoneregcheck(ip_addr):
     uris = OrderedDict({
         'http://' + ip_addr + '/CGI/Java/Serviceability?adapter=device.statistics.configuration': ['SEP*|CIPC*', 'Active'],
-        'http://' + ip_addr + '/localmenus.cgi?fund=219': ['SEP*', 'Active'],
+        'http://' + ip_addr + '/localmenus.cgi?func=219': ['SEP*', 'Active'],
         'http://' + ip_addr + '/DeviceInformation': ['SEP*'],
     })
     for uri, regex_list in uris.items():
