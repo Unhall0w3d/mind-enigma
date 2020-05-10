@@ -3,6 +3,8 @@
 
 #####################################
 # Script created by Ken Perry, 2020 #
+#       NOC THOUGHTS BLOG           #
+# https://nocthoughts.wordpress.com #
 #####################################
 
 # Modules Imported for Script Functionality
@@ -18,11 +20,10 @@ from collections import OrderedDict
 def menu():
     print("************MAIN MENU**************")
     print()
-
     choice = input("""
                       1: deviceRegCheck File Input
                       2: deviceRegCheck Menu Input
-                      3: phoneConsoleLogs
+                      3: pull phoneConsoleLogs
                       Q. Quit
 
                       Please enter your choice: """)
@@ -59,10 +60,18 @@ def menu():
         for ipcollect in range(phones):
             ipaddress.append(input('What is the phone IP address?: '))
         for n in ipaddress:
-            subprocess.call(
-                'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + n +
-                '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destfolder,
-                shell=True)
+            try:
+                subprocess.call(
+                    'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + n +
+                    '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destfolder,
+                    shell=True)
+            except requests.exceptions.ConnectionError:
+                print('Far end ' + n + 'has closed the connection.')
+            except requests.exceptions.Timeout:
+                print('Connection to ' + n + ' timed out. Trying next.')
+            except Exception as e:
+                print('The script failed. Contact script dev with details from your attempt and failure.')
+                print(e)
         print('#################################################################################')
         print('#################################################################################')
         print('Files have been stored in ' + destfolder + ' in an IP specific folder.')
