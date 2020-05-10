@@ -22,7 +22,6 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 
 # Define Main Menu
 def menu():
-    print("************MAIN MENU**************")
     print()
     choice = input("""
                       1: deviceRegCheck File Input
