@@ -115,7 +115,7 @@ def phoneregcheck(ip_addr):
                         z.close()
                 break
         except requests.exceptions.ConnectionError:
-            print('Far end ' + ip_addr + 'has closed the connection.')
+            print('URL Attempted for ' + ip_addr + ' received HTTP 200 but closed connection. Attempting next URL.')
         except requests.exceptions.Timeout:
             print('Connection to ' + ip_addr + ' timed out. Trying next.')
         except Exception as e:
