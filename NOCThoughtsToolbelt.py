@@ -40,6 +40,7 @@ def menu():
                 for line in txtfile:
                     lines.append(line)
             return lines
+
         phone_ips = phonefilefetch()
         [phoneregcheck(ip_addr) for ip_addr in phone_ips]
         menu()
@@ -50,35 +51,27 @@ def menu():
             if type(num_phones) != int:
                 print('Error: Expected Integer.')
                 exit(1)
-            ip_list = []
+            ips = []
             for phonecount in range(num_phones):
-                ip_list.append(input('What is the phone IP address?: '))
-            return ip_list
-        phone_ips = phonecollection()
-        [phoneregcheck(ip_addr) for ip_addr in phone_ips]
+                ips.append(input('What is the phone IP address?: '))
+            return ips
+
+        ips = phonecollection()
+        [phoneregcheck(ip_addr) for ip_addr in ips]
         menu()
     elif choice == "3":
-        phones = int(input('How many phones do we need logs for?: '))
-        ipaddress = []
-        destfolder = str('~/')
-        for ipcollect in range(phones):
-            ipaddress.append(input('What is the phone IP address?: '))
-        for n in ipaddress:
-            try:
-                subprocess.call(
-                    'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + n +
-                    '/CGI/Java/Serviceability?adapter=device.statistics.consolelog' + ' -P ' + destfolder,
-                    shell=True)
-            except requests.exceptions.ConnectionError:
-                print('Far end ' + n + 'has closed the connection.')
-            except requests.exceptions.Timeout:
-                print('Connection to ' + n + ' timed out. Trying next.')
-            except Exception as e:
-                print('The script failed. Contact script dev with details from your attempt and failure.')
-                print(e)
+        def ipcollector():
+            phones = int(input('How many phones do we need logs for?: '))
+            logcollectips = []
+            for ipcollect in range(phones):
+                logcollectips.append(input('What is the phone IP address?: '))
+            return logcollectips
+
+        logcollectips = ipcollector()
+        [logcollect(ip_addr) for ip_addr in logcollectips]
         print('#################################################################################')
         print('#################################################################################')
-        print('Files have been stored in ' + destfolder + ' in an IP specific folder.')
+        print('############# Files have been stored in ~/ in an IP specific folder #############')
         print('#################################################################################')
         print('#################################################################################')
         menu()
@@ -116,6 +109,34 @@ def phoneregcheck(ip_addr):
                 break
         except requests.exceptions.ConnectionError:
             print('URL Attempted for ' + ip_addr + ' received HTTP 200 but closed connection. Attempting next URL.')
+        except requests.exceptions.Timeout:
+            print('Connection to ' + ip_addr + ' timed out. Trying next.')
+        except Exception as e:
+            print('The script failed. Contact script dev with details from your attempt and failure.')
+            print(e)
+
+
+# Log collection function that runs wget against consolelog url to pull recursively.
+def logcollect(ip_addr):
+    destfolder = str('~/')
+    uris = list({
+        '/CGI/Java/Serviceability?adapter=device.statistics.consolelog',
+        '/localmenus.cgi?func=609',
+        # '/NetworkConfiguration',
+        # '/Network_Setup.htm',
+        # '/Network_Setup.html',
+        '/?adapter=device.statistics.consolelog',
+    })
+    for uri in uris:
+        try:
+            response = requests.get(f'http://{ip_addr}{uri}', timeout=6)
+            if response.status_code == 200:
+                subprocess.call(
+                    'wget -T 5 --tries=2 -r --accept "*.log, messages*, *.tar.gz" http://' + ip_addr +
+                    uri + ' -P ' + destfolder,
+                    shell=True)
+        except requests.exceptions.ConnectionError:
+            print('Far end ' + ip_addr + 'has closed the connection.')
         except requests.exceptions.Timeout:
             print('Connection to ' + ip_addr + ' timed out. Trying next.')
         except Exception as e:
