@@ -27,7 +27,7 @@ def menu():
                       1: deviceRegCheck File Input
                       2: deviceRegCheck Menu Input
                       3: pull phoneConsoleLogs
-                      Q. Quit
+                      Q: Quit
 
                       Please enter your choice: """)
 
