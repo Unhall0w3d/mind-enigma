@@ -12,8 +12,12 @@ import re
 import requests
 import sys
 import subprocess
+import time
 from bs4 import BeautifulSoup
 from collections import OrderedDict
+
+# Define Variables
+timestr = time.strftime("%Y%m%d-%H%M%S")
 
 
 # Define Main Menu
@@ -106,6 +110,9 @@ def phoneregcheck(ip_addr):
                     data = parser.find(text=re.compile(regex))
                     if data:
                         print(data)
+                        z = open('DeviceRegStatus' + timestr + '.txt', 'a+')
+                        z.write(data + "\n")
+                        z.close()
                 break
         except requests.exceptions.ConnectionError:
             print('Far end ' + ip_addr + 'has closed the connection.')
