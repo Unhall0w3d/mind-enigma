@@ -68,11 +68,7 @@ def menu():
 
         logcollectips = ipcollector()
         [logcollect(ip_addr) for ip_addr in logcollectips]
-        print('#################################################################################')
-        print('#################################################################################')
         print('############# Files have been stored in ~/ in an IP specific folder #############')
-        print('#################################################################################')
-        print('#################################################################################')
         menu()
     elif choice == "q" or choice == "Q":
         sys.exit()
@@ -102,9 +98,9 @@ def phoneregcheck(ip_addr):
                     data = parser.find(text=re.compile(regex))
                     if data:
                         print(data)
-                        z = open('DeviceRegStatus' + timestr + '.txt', 'a+')
-                        z.write(data + "\n")
-                        z.close()
+                        outputfile = open('DeviceRegStatus' + timestr + '.txt', 'a+')
+                        outputfile.write(data + "\n")
+                        outputfile.close()
                 break
         except requests.exceptions.ConnectionError:
             print('URL Attempted for ' + ip_addr + ' received HTTP 200 but closed connection. Attempting next URL.')
