@@ -121,9 +121,9 @@ def logcollect(ip_addr):
     uris = list({
         '/CGI/Java/Serviceability?adapter=device.statistics.consolelog',
         '/localmenus.cgi?func=609',
-        # '/NetworkConfiguration',
-        # '/Network_Setup.htm',
-        # '/Network_Setup.html',
+        # '/NetworkConfiguration', Waiting on updated URL structure for phone models I don't have access to.
+        # '/Network_Setup.htm', Waiting on updated URL structure for phone models I don't have access to.
+        # '/Network_Setup.html', Waiting on updated URL structure for phone models I don't have access to.
         '/?adapter=device.statistics.consolelog',
     })
     for uri in uris:
