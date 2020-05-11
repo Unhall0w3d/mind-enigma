@@ -24,52 +24,36 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 def menu():
     print()
     choice = input("""
-                      1: deviceRegCheck File Input
-                      2: deviceRegCheck Menu Input
-                      3: pull phoneConsoleLogs
+                      1: Check Cisco Phone Registration
+                      2: Pull Cisco Phone Logs
+                      3: Not Implemented
                       Q: Quit
 
                       Selection: """)
 
     if choice == "1":
-        # Phone Collection function that utilizes input file 'iplist.txt' in same directory.
-        def phonefilefetch():
-            with open('iplist.txt') as txtfile:
-                lines = [line.rstrip() for line in txtfile]
-                for line in txtfile:
-                    lines.append(line)
-            return lines
+        print()
+        inputchoice = input("""
+                      1: Call File (e.g. myphones.txt)
+                      2: Manual Input
 
-        phone_ips = phonefilefetch()
-        [phoneregcheck(ip_addr) for ip_addr in phone_ips]
-        menu()
+                      Selection: """)
+        if inputchoice == "1":
+            phone_ips = phonefilefetch()
+            [phoneregcheck(ip_addr) for ip_addr in phone_ips]
+            menu()
+        elif inputchoice == "2":
+            ips = phonecollection()
+            [phoneregcheck(ip_addr) for ip_addr in ips]
+            menu()
     elif choice == "2":
-        # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
-        def phonecollection():
-            num_phones = int(input('How many phones?: '))
-            if type(num_phones) != int:
-                print('Error: Expected Integer.')
-                exit(1)
-            ips = []
-            for phonecount in range(num_phones):
-                ips.append(input('What is the phone IP address?: '))
-            return ips
-
         ips = phonecollection()
-        [phoneregcheck(ip_addr) for ip_addr in ips]
-        menu()
-    elif choice == "3":
-        def ipcollector():
-            phones = int(input('How many phones do we need logs for?: '))
-            logcollectips = []
-            for ipcollect in range(phones):
-                logcollectips.append(input('What is the phone IP address?: '))
-            return logcollectips
-
-        logcollectips = ipcollector()
-        [logcollect(ip_addr) for ip_addr in logcollectips]
+        [logcollect(ip_addr) for ip_addr in ips]
         print('############# Files have been stored in ~/ in an IP specific folder #############')
         menu()
+    elif choice == "3":
+        print('This option is not implemented')
+        sys.exit()
     elif choice == "q" or choice == "Q":
         sys.exit()
     else:
@@ -137,6 +121,27 @@ def logcollect(ip_addr):
         except Exception as e:
             print('The script failed. Contact script dev with details from your attempt and failure.')
             print(e)
+
+
+# Phone Collection function that utilizes input file 'iplist.txt' in same directory.
+def phonefilefetch():
+    with open('iplist.txt') as txtfile:
+        lines = [line.rstrip() for line in txtfile]
+        for line in txtfile:
+            lines.append(line)
+    return lines
+
+
+# Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
+def phonecollection():
+    num_phones = int(input('How many phones?: '))
+    if type(num_phones) != int:
+        print('Error: Expected Integer.')
+        exit(1)
+    ips = []
+    for phonecount in range(num_phones):
+        ips.append(input('What is the phone IP address?: '))
+    return ips
 
 
 # Call Menu
