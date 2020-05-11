@@ -120,10 +120,10 @@ def logcollect(ip_addr):
     destfolder = str('~/')
     uris = list({
         '/CGI/Java/Serviceability?adapter=device.statistics.consolelog',
-        '/localmenus.cgi?func=609',
+        '/localmenus.cgi?func=603',
         # '/NetworkConfiguration', Waiting on updated URL structure for phone models I don't have access to.
-        # '/Network_Setup.htm', Waiting on updated URL structure for phone models I don't have access to.
-        # '/Network_Setup.html', Waiting on updated URL structure for phone models I don't have access to.
+        '/Console_Logs.htm',
+        '/Console_Logs.html',
         '/?adapter=device.statistics.consolelog',
     })
     for uri in uris:
