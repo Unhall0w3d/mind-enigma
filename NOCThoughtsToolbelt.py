@@ -29,7 +29,7 @@ def menu():
                       3: pull phoneConsoleLogs
                       Q: Quit
 
-                      Please enter your choice: """)
+                      Selection: """)
 
     if choice == "1":
         # Phone Collection function that utilizes input file 'iplist.txt' in same directory.
