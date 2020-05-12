@@ -9,12 +9,13 @@
 
 # Modules Imported for Script Functionality
 import re
-import requests
-import sys
 import subprocess
+import sys
 import time
-from bs4 import BeautifulSoup
 from collections import OrderedDict
+
+import requests
+from bs4 import BeautifulSoup
 
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -52,7 +53,7 @@ def menu():
         print('############# Files have been stored in ~/ in an IP specific folder #############')
         menu()
     elif choice == "3":
-        print('This option is not implemented')
+        print('This option is not yet implemented')
         sys.exit()
     elif choice == "q" or choice == "Q":
         sys.exit()
@@ -76,18 +77,21 @@ def phoneregcheck(ip_addr):
     for uri, regex_list in uris.items():
         try:
             response = requests.get(f'http://{ip_addr}{uri}', timeout=6)
+            storehere = ' '
             if response.status_code == 200:
                 parser = BeautifulSoup(response.content, 'lxml')
                 for regex in regex_list:
                     data = parser.find(text=re.compile(regex))
                     if data:
-                        print(data)
-                        outputfile = open('DeviceRegStatus' + timestr + '.txt', 'a+')
-                        outputfile.write(data + "\n")
-                        outputfile.close()
+                        storehere = storehere + ' ' + data
+                print(storehere)
+                outputfile = open('DeviceRegStatus' + timestr + '.txt', 'a+')
+                outputfile.write(storehere + '\n')
+                outputfile.close()
                 break
-        except requests.exceptions.ConnectionError:
+        except requests.exceptions.ConnectionError as u:
             print('URL Attempted for ' + ip_addr + ' received HTTP 200 but closed connection. Attempting next URL.')
+            print(u)
         except requests.exceptions.Timeout:
             print('Connection to ' + ip_addr + ' timed out. Trying next.')
         except Exception as e:
@@ -125,7 +129,8 @@ def logcollect(ip_addr):
 
 # Phone Collection function that utilizes input file 'iplist.txt' in same directory.
 def phonefilefetch():
-    with open('iplist.txt') as txtfile:
+    inputfile = input('What is the name of the input text file?: ')
+    with open(inputfile) as txtfile:
         lines = [line.rstrip() for line in txtfile]
         for line in txtfile:
             lines.append(line)
