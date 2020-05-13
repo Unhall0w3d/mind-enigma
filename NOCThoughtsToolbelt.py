@@ -8,14 +8,13 @@
 #####################################
 
 # Modules Imported for Script Functionality
-import re
 import subprocess
-import sys
 import time
-from collections import OrderedDict
+import xml.etree.ElementTree
+from io import BytesIO
 
+import pycurl
 import requests
-from bs4 import BeautifulSoup
 
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -25,7 +24,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 def menu():
     print()
     choice = input("""
-                      1: Check Cisco Phone Registration
+                      1: Pull Cisco Phone Info
                       2: Pull Cisco Phone Logs
                       3: Not Implemented
                       Q: Quit
@@ -33,70 +32,22 @@ def menu():
                       Selection: """)
 
     if choice == "1":
-        print()
-        inputchoice = input("""
-                      1: Call File (e.g. myphones.txt)
-                      2: Manual Input
-
-                      Selection: """)
-        if inputchoice == "1":
-            phone_ips = phonefilefetch()
-            [phoneregcheck(ip_addr) for ip_addr in phone_ips]
-            menu()
-        elif inputchoice == "2":
-            ips = phonecollection()
-            [phoneregcheck(ip_addr) for ip_addr in ips]
-            menu()
+        serialnumpull()
+        menu()
     elif choice == "2":
         ips = phonecollection()
         [logcollect(ip_addr) for ip_addr in ips]
         print('############# Files have been stored in ~/ in an IP specific folder #############')
         menu()
     elif choice == "3":
-        print('This option is not yet implemented')
-        sys.exit()
+        print("Not Implemented")
+        exit()
     elif choice == "q" or choice == "Q":
-        sys.exit()
+        exit()
     else:
         print("You must select an option on the menu.")
         print("Please try again")
         menu()
-
-
-# Web Scrape function that uses requests to get webpage content.
-# Content is then parsed by lxml (or html.parser) and BeautifulSoup is used to extract data based on regular expression.
-def phoneregcheck(ip_addr):
-    uris = OrderedDict({
-        '/CGI/Java/Serviceability?adapter=device.statistics.configuration': ['SEP*|CIPC*', 'Active'],
-        '/localmenus.cgi?func=219': ['SEP*', 'Active'],
-        '/NetworkConfiguration': ['SEP*', 'Active'],
-        '/Network_Setup.htm': ['ATA*|SEP*', 'Active'],
-        '/Network_Setup.html': ['SEP*', 'Active'],
-        '/?adapter=device.statistics.configuration': ['DX*', 'Active'],
-    })
-    for uri, regex_list in uris.items():
-        try:
-            response = requests.get(f'http://{ip_addr}{uri}', timeout=6)
-            storehere = ' '
-            if response.status_code == 200:
-                parser = BeautifulSoup(response.content, 'lxml')
-                for regex in regex_list:
-                    data = parser.find(text=re.compile(regex))
-                    if data:
-                        storehere = storehere + ' ' + data
-                print(storehere)
-                outputfile = open('DeviceRegStatus' + timestr + '.txt', 'a+')
-                outputfile.write(storehere + '\n')
-                outputfile.close()
-                break
-        except requests.exceptions.ConnectionError as u:
-            print('URL Attempted for ' + ip_addr + ' received HTTP 200 but closed connection. Attempting next URL.')
-            print(u)
-        except requests.exceptions.Timeout:
-            print('Connection to ' + ip_addr + ' timed out. Trying next.')
-        except Exception as e:
-            print('The script failed. Contact script dev with details from your attempt and failure.')
-            print(e)
 
 
 # Log collection function that runs wget against consolelog url to pull recursively.
@@ -127,16 +78,6 @@ def logcollect(ip_addr):
             print(e)
 
 
-# Phone Collection function that utilizes input file 'iplist.txt' in same directory.
-def phonefilefetch():
-    inputfile = input('What is the name of the input text file?: ')
-    with open(inputfile) as txtfile:
-        lines = [line.rstrip() for line in txtfile]
-        for line in txtfile:
-            lines.append(line)
-    return lines
-
-
 # Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
 def phonecollection():
     num_phones = int(input('How many phones?: '))
@@ -147,6 +88,64 @@ def phonecollection():
     for phonecount in range(num_phones):
         ips.append(input('What is the phone IP address?: '))
     return ips
+
+
+def getxml(ip_addr, _act):
+    buffer = BytesIO()
+    curl = pycurl.Curl()
+    curl.setopt(pycurl.CONNECTTIMEOUT, 5)
+    _url = f'http://{ip_addr}{_act}'
+    curl.setopt(curl.URL, _url)
+    curl.setopt(curl.WRITEDATA, buffer)
+    try:
+        curl.perform()
+        curl.close()
+        return xml.etree.ElementTree.fromstring((buffer.getvalue()))
+    except pycurl.error:
+        print('Connection Timed Out. No response after 5 seconds for ' + ip_addr + '. Trying next.')
+        exit(1)
+
+
+def serialnumpull():
+    xmlurl = ['/NetworkConfigurationX', '/DeviceInformationX']
+    inputfile = input('What is the name of the input text file? (e.g. iplist.txt): ')
+    with open(inputfile) as txtfile:
+        lines = [line.rstrip() for line in txtfile]
+        for line in txtfile:
+            lines.append(line)
+    for _ip in lines:
+        try:
+            for _url in xmlurl:
+                root = getxml(_ip, _url)
+                if root == -1:
+                    break
+                _root = _url.strip('/X')
+                for _line in root.iter(_root):
+                    if _line.find('HostName') is not None:
+                        _MAC = _line.find('HostName').text
+                    if _line.find('modelNumber') is not None:
+                        _model = _line.find('modelNumber').text
+                    if _line.find('serialNumber') is not None:
+                        _sn = _line.find('serialNumber').text
+                    else:
+                        _sn = "n/a"
+
+                    for i in range(2):
+                        if _line.find('CallManager%s' % (i + 1)) is not None:
+                            if _line.find('CallManager%s' % (i + 1)).text.find('Active') != -1:
+                                _CUCM = _line.find('CallManager%s' % (i + 1)).text
+            if root == -1:
+                continue
+            print()
+            print("IP:", _ip, "DeviceName:", _MAC, "Model:", _model, "Serial Number:", _sn, "Reg State:", _CUCM)
+            # collecteddata = [_ip, _MAC, _model, _sn, _CUCM, '\n']
+            # outputfile = open('DeviceDataPull' + timestr + '.txt', 'a+')
+            # outputfile.writelines(collecteddata)
+            # outputfile.close()
+        except Exception as m:
+            print(m)
+            exit(2)
+    return
 
 
 # Call Menu
