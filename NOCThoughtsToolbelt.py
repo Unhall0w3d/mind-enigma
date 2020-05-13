@@ -134,6 +134,9 @@ def serialnumpull():
                         if _line.find('CallManager%s' % (i + 1)) is not None:
                             if _line.find('CallManager%s' % (i + 1)).text.find('Active') != -1:
                                 _CUCM = _line.find('CallManager%s' % (i + 1)).text
+                            elif _line.find('CallManager%s' % (i + 1)).text.find('Active') == -1:
+                                _CUCM = "Node is not registered."
+
             if root == -1:
                 continue
             print()
