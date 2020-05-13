@@ -3,6 +3,11 @@ Script written by Ken Perry, NOC Thoughts Blog
 https://nocthoughts.wordpress.com
 Code guidance, testing and other contributions by Mark Barba, Juliana Xu, Cole Aten, Robert Phillips.
 
+
+Input Method:
+File input for device info check should be a .txt file in same-directory as the script.
+Device IP addresses should be listed one per line
+
 Required Modules:
 subprocess
 time
