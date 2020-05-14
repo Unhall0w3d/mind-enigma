@@ -90,7 +90,7 @@ def phonecollection():
     return ips
 
 
-def getxml(ip_addr, _act):
+def getxmldata(ip_addr, _act):
     buffer = BytesIO()
     curl = pycurl.Curl()
     curl.setopt(pycurl.CONNECTTIMEOUT, 5)
@@ -107,44 +107,40 @@ def getxml(ip_addr, _act):
 
 
 def serialnumpull():
-    xmlurl = ['/NetworkConfigurationX', '/DeviceInformationX']
+    xmluris = ['/NetworkConfigurationX', '/DeviceInformationX']
     inputfile = input('What is the name of the input text file? (e.g. iplist.txt): ')
     with open(inputfile) as txtfile:
         lines = [line.rstrip() for line in txtfile]
         for line in txtfile:
             lines.append(line)
-    for _ip in lines:
+    for ipaddy in lines:
         try:
-            for _url in xmlurl:
-                root = getxml(_ip, _url)
+            for uri in xmluris:
+                root = getxmldata(ipaddy, uri)
                 if root == -1:
                     break
-                _root = _url.strip('/X')
-                for _line in root.iter(_root):
-                    if _line.find('HostName') is not None:
-                        _MAC = _line.find('HostName').text
-                    if _line.find('modelNumber') is not None:
-                        _model = _line.find('modelNumber').text
-                    if _line.find('serialNumber') is not None:
-                        _sn = _line.find('serialNumber').text
+                _root = uri.strip('/X')
+                for xmltag in root.iter(_root):
+                    if xmltag.find('HostName') is not None:
+                        macaddr = xmltag.find('HostName').text
+                    if xmltag.find('modelNumber') is not None:
+                        modelnum = xmltag.find('modelNumber').text
+                    if xmltag.find('serialNumber') is not None:
+                        serialnum = xmltag.find('serialNumber').text
                     else:
-                        _sn = "n/a"
+                        serialnum = "n/a"
 
                     for i in range(2):
-                        if _line.find('CallManager%s' % (i + 1)) is not None:
-                            if _line.find('CallManager%s' % (i + 1)).text.find('Active') != -1:
-                                _CUCM = _line.find('CallManager%s' % (i + 1)).text
-                            elif _line.find('CallManager%s' % (i + 1)).text.find('Active') == -1:
-                                _CUCM = "Node is not registered."
+                        if xmltag.find('CallManager%s' % (i + 1)) is not None:
+                            if xmltag.find('CallManager%s' % (i + 1)).text.find('Active') != -1:
+                                cucmreg = xmltag.find('CallManager%s' % (i + 1)).text
+                            elif xmltag.find('CallManager%s' % (i + 1)).text.find('Active') == -1:
+                                cucmreg = "Node is not registered."
 
             if root == -1:
                 continue
             print()
-            print("IP:", _ip, "DeviceName:", _MAC, "Model:", _model, "Serial Number:", _sn, "Reg State:", _CUCM)
-            # collecteddata = [_ip, _MAC, _model, _sn, _CUCM, '\n']
-            # outputfile = open('DeviceDataPull' + timestr + '.txt', 'a+')
-            # outputfile.writelines(collecteddata)
-            # outputfile.close()
+            print("IP:", ipaddy, "DeviceName:", macaddr, "Model:", modelnum, "Serial Number:", serialnum, "Reg State:", cucmreg)
         except Exception as m:
             print(m)
             exit(2)
