@@ -134,8 +134,6 @@ def serialnumpull():
                         if xmltag.find('CallManager%s' % (i + 1)) is not None:
                             if xmltag.find('CallManager%s' % (i + 1)).text.find('Active') != -1:
                                 cucmreg = xmltag.find('CallManager%s' % (i + 1)).text
-                            elif xmltag.find('CallManager%s' % (i + 1)).text.find('Active') == -1:
-                                cucmreg = "Node is not registered."
 
             if root == -1:
                 continue
