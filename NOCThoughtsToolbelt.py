@@ -93,8 +93,8 @@ def phonecollection():
 def getxmldata(ip_addr, _act):
     buffer = BytesIO()
     curl = pycurl.Curl()
-    curl.setopt(pycurl.CONNECTTIMEOUT, 5)
     _url = f'http://{ip_addr}{_act}'
+    curl.setopt(pycurl.CONNECTTIMEOUT, 5)
     curl.setopt(curl.URL, _url)
     curl.setopt(curl.WRITEDATA, buffer)
     try:
