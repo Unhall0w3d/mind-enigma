@@ -3,6 +3,7 @@
 import requests
 import time
 import urllib3
+import xml.dom.minidom
 
 # Define disablement of HTTPS Insecure Request error message.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -38,6 +39,10 @@ headers = {
 # Here's where we send a POST message out to CUCM, we don't verify certificates.
 response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
 
-print(response.text.encode('utf8'))
-with open('DeviceDefaults' + timestr + '.xml', 'w+') as file:
-    file.write(response.text)
+uglyxml = response.text.encode('utf8')
+xml = xml.dom.minidom.parseString(uglyxml)
+xml_pretty_str = xml.toprettyxml()
+print(xml_pretty_str)
+
+with open('DeviceDefaults' + timestr + ccmip + '.xml', 'w+') as file:
+    file.write(xml_pretty_str)
