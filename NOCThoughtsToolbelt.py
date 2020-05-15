@@ -109,10 +109,10 @@ def phonecollection():
     return ips
 
 
-def getxmldata(ip_addr, _act):
+def getxmldata(ip_addr, uri):
     buffer = BytesIO()
     curl = pycurl.Curl()
-    _url = f'http://{ip_addr}{_act}'
+    _url = f'http://{ip_addr}{uri}'
     curl.setopt(pycurl.CONNECTTIMEOUT, 5)
     curl.setopt(curl.URL, _url)
     curl.setopt(curl.WRITEDATA, buffer)
@@ -181,7 +181,7 @@ def devicedefaultsfetch():
 
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Like https://[CCM-IP-ADDRESS]/ccmadmin > Device > " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + version + "\">\n<!--Like https://[CCM-IP-ADDRESS]/ccmadmin > Device > " \
               "Device Settings > Device Defaults -->\n   <soapenv:Header/>\n   <soapenv:Body>\n      <ns:executeSQLQuery " \
               "sequence=\"\">\n         <sql>\n        SELECT count(dev.tkmodel), tp.name, defaults.tkdeviceprotocol, " \
               "defaults.loadinformation, dev.tkmodel AS tkmodel \n        FROM device AS dev \n        INNER JOIN " \
