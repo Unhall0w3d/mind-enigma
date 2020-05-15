@@ -13,29 +13,28 @@ def devicedefaultsfetch():
 
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
+    print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
+    version = str(input('What version is UCM?: '))
     myusername = str(input('What is the GUI Username?: '))
-    mypassword = str(input('What is the GUI Password?: '))
-
-    # Define datetime variable
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+    mypassword = getpass('What is the GUI Password?: ')
 
     # URL to hit for request against axl
     url = ('https://' + ccmip + '/axl/')
 
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-        "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Like https://[CCM-IP-ADDRESS]/ccmadmin > Device > " \
-        "Device Settings > Device Defaults -->\n   <soapenv:Header/>\n   <soapenv:Body>\n      <ns:executeSQLQuery " \
-        "sequence=\"\">\n         <sql>\n        SELECT count(dev.tkmodel), tp.name, defaults.tkdeviceprotocol, " \
-        "defaults.loadinformation, dev.tkmodel AS tkmodel \n        FROM device AS dev \n        INNER JOIN " \
-        "TypeProduct AS tp ON dev.tkmodel=tp.tkmodel \n        INNER JOIN defaults as defaults ON " \
-        "tp.tkmodel=defaults.tkmodel \n        WHERE (dev.name like 'SEP%' or dev.name like 'ATA%') \n        GROUP " \
-        "BY dev.tkmodel, tp.name, defaults.loadinformation, defaults.tkdeviceprotocol\n         </sql>\n      " \
-        "</ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + version + "\">\n<!--Like https://[CCM-IP-ADDRESS]/ccmadmin > Device > " \
+              "Device Settings > Device Defaults -->\n   <soapenv:Header/>\n   <soapenv:Body>\n      <ns:executeSQLQuery " \
+              "sequence=\"\">\n         <sql>\n        SELECT count(dev.tkmodel), tp.name, defaults.tkdeviceprotocol, " \
+              "defaults.loadinformation, dev.tkmodel AS tkmodel \n        FROM device AS dev \n        INNER JOIN " \
+              "TypeProduct AS tp ON dev.tkmodel=tp.tkmodel \n        INNER JOIN defaults as defaults ON " \
+              "tp.tkmodel=defaults.tkmodel \n        WHERE (dev.name like 'SEP%' or dev.name like 'ATA%') \n        GROUP " \
+              "BY dev.tkmodel, tp.name, defaults.loadinformation, defaults.tkdeviceprotocol\n         </sql>\n      " \
+              "</ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=10.5 executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
 
