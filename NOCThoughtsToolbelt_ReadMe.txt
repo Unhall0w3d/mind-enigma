@@ -1,29 +1,22 @@
 READ_ME
 Script written by Ken Perry, NOC Thoughts Blog
 https://nocthoughts.wordpress.com
-Code guidance, testing and other contributions by Mark Barba, Juliana Xu, Cole Aten, Robert Phillips.
+Code guidance, testing, sample and other contributions by Mark Barba, Juliana Xu, Cole Aten, Robert Phillips.
+
+Use Case(s):
+Cisco Phone Info Pull - Useful when checking for registration state on Cisco Phones by IP, or collecting Serial Numbers for SmartNet True-up.
+Cisco Phone Log Pull - Useful to collect all Cisco Phone Logs on a phone when working with Cisco TAC or reviewing logs for various phone issues.
+UCM Device Defaults - Useful to pull pre UCM Software or Device Pack upgrade in the event reverting phone firmwares is required (due to bug or other issue/requirement).
 
 
-Input Method:
+Input Method(s):
 File input for device info check should be a .txt file in same-directory as the script.
 Device IP addresses should be listed one per line
 
-Required Modules:
-subprocess
-time
-xml.etree.ElementTree
-from io import BytesIO
+Required Module(s):
+subprocess, time, xml.etree.ElementTree, io > BytesIO, pycurl, requests, urllib3, xml.dom.minidom
 
-pycurl
-requests
-
-Device Coverage for Reg Check:
-Cisco IP Communicator
-Cisco 6901, 7832, 7936, 7937, 7940, 7841, 7945, 7961, 7962, 7965, 7970, 8811, 8821, 8831, 8841, 8851, 8861, 8865, 9951, 9971
-Cisco DX650
-Cisco ATA187
-
-Device Coverage for Log Pull:
+Device Coverage for Reg Check/log pull:
 Cisco IP Communicator
 Cisco 6901, 7832, 7936, 7937, 7940, 7841, 7945, 7961, 7962, 7965, 7970, 8811, 8821, 8831, 8841, 8851, 8861, 8865, 9951, 9971
 Cisco DX650
