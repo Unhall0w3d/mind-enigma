@@ -15,9 +15,10 @@ class PhoneEvent(object):
             attrs = d.split('=')
             setattr(self, attrs[0].lower(), attrs[1])
 
+
 def process_event(event):
     data = re.search(r'\[.*\]', event).group().split('][')
-    data = [re.sub('[\[\]]', '', e) for e in data]
+    data = [re.sub(r'[\[\]]', '', e) for e in data]
     return PhoneEvent(data)
 
 
