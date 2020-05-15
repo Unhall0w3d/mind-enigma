@@ -17,6 +17,7 @@ import pycurl
 import requests
 import urllib3
 import xml.dom.minidom
+from getpass import getpass
 
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -170,8 +171,10 @@ def devicedefaultsfetch():
 
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
+    print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
+    version = str(input('What version is UCM?: '))
     myusername = str(input('What is the GUI Username?: '))
-    mypassword = str(input('What is the GUI Password?: '))
+    mypassword = getpass('What is the GUI Password?: ')
 
     # URL to hit for request against axl
     url = ('https://' + ccmip + '/axl/')
@@ -189,7 +192,7 @@ def devicedefaultsfetch():
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=10.5 executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
 
