@@ -11,7 +11,7 @@ from getpass import getpass
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
 
-def jabberlastloginreport():
+def devicestaticfirmwareassignment():
     # Define disablement of HTTPS Insecure Request error message.
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -27,13 +27,13 @@ def jabberlastloginreport():
 
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Verifies the last time a Jabber user logged in, " \
-              "or the last time their profile was accessed-->\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
-              "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT e.userid, cd.timelastaccessed\n " \
-              "           FROM enduser as e, credentialdynamic as cd, credential as cr\n            WHERE " \
-              "e.pkid=cr.fkenduser and e.tkuserprofile=1 and e.primarynodeid is not null and cr.tkcredential=3 and " \
-              "cr.pkid=cd.fkcredential\n            ORDER by cd.timelastaccessed\n         </sql>\n      " \
-              "</ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!-- Like https://[CCM-IP-ADDRESS]/ccmadmin > Device " \
+              "> Device Settings > Device Firmware Load Information -->\n   <soapenv:Header/>\n   <soapenv:Body>\n    " \
+              "  <ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name, " \
+              "d.specialloadinformation, d.description, tp.name AS model\n            FROM device AS d\n            " \
+              "INNER JOIN TypeProduct AS tp ON d.tkmodel=tp.tkmodel\n            WHERE d.name like 'SEP%' AND " \
+              "d.specialloadinformation != ''\n         </sql>\n      </ns:executeSQLQuery>\n   " \
+              "</soapenv:Body>\n</soapenv:Envelope>\n "
 
     # Header content, define db version and execute an SQL Query
     headers = {
@@ -48,10 +48,7 @@ def jabberlastloginreport():
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
-    print('Data Collected. Please see file JabberLastLogin' + timestr + ccmip + '.xml.')
+    print('Data Collected. Please see file DevicesStaticFirmwareAssignment' + timestr + ccmip + '.xml.')
 
-    with open('JabberLastLogin' + timestr + ccmip + '.xml', 'w+') as file:
+    with open('DevicesStaticFirmwareAssignment' + timestr + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
-
-
-jabberlastloginreport()
