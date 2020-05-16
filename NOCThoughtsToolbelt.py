@@ -46,7 +46,8 @@ def menu():
     elif choice == "3":
         submenuchoice = input("""
                           1: Pull UCM Device Defaults
-                          2: Undefined
+                          2: Pull UCM Phones Configured
+                          3: Pull Jabber Last Login Time
                           Q: Quit
 
                           Selection: """)
@@ -54,7 +55,12 @@ def menu():
             devicedefaultsfetch()
             menu()
         elif submenuchoice == "2":
-            print("Not Implemented")
+            ccmphonereport()
+            menu()
+        elif submenuchoice == "3":
+            jabberlastloginreport()
+            menu()
+        elif submenuchoice == "4":
             exit()
         elif submenuchoice == "q" or "Q":
             exit()
@@ -96,8 +102,9 @@ def logcollect(ip_addr):
             print('The script failed. Contact script dev with details from your attempt and failure.')
             print(e)
 
+# PHONE RELATED FUNCTIONS
 
-# Phone Collection function that asks for a number for how many phones we'll check, then their IP addresses.
+
 def phonecollection():
     num_phones = int(input('How many phones?: '))
     if type(num_phones) != int:
@@ -164,6 +171,8 @@ def serialnumpull():
             exit(2)
     return
 
+# CALLMANAGER RELATED FUNCTIONS
+
 
 def devicedefaultsfetch():
     # Define disablement of HTTPS Insecure Request error message.
@@ -206,6 +215,92 @@ def devicedefaultsfetch():
     print('Data Collected. Please see file DeviceDefaults' + timestr + ccmip + '.xml.')
 
     with open('DeviceDefaults' + timestr + ccmip + '.xml', 'w+') as file:
+        file.write(xml_pretty_str)
+
+
+def ccmphonereport():
+    # Define disablement of HTTPS Insecure Request error message.
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    # Define user input required for script; pub ip, username, pw
+    ccmip = str(input('What is the CUCM Pub IP?: '))
+    print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
+    version = str(input('What version is UCM?: '))
+    myusername = str(input('What is the GUI Username?: '))
+    mypassword = getpass('What is the GUI Password?: ')
+
+    # URL to hit for request against axl
+    url = ('https://' + ccmip + '/axl/')
+
+    # Payload to send; soap envelope
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!-- SQL Data Pull for Device Name, Description, " \
+              "DN and Partition the DN Sits in for Basic Reporting -->\n   <soapenv:Header/>\n   <soapenv:Body>\n     " \
+              " <ns:executeSQLQuery sequence=\"\">\n         <sql>\n\t\t\tSELECT d.name,d.description,n.dnorpattern " \
+              "as DN,rp.name as partition\n\t\t\tFROM device as d\n\t\t\tINNER join devicenumplanmap as dmap on " \
+              "dmap.fkdevice=d.pkid\n\t\t\tINNER join numplan as n on dmap.fknumplan=n.pkid\n\t\t\tINNER join " \
+              "routepartition as rp on n.fkroutepartition=rp.pkid\n\t\t\tWHERE d.tkclass=1\n\t\t\tORDER by d.name\n   " \
+              "      </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
+
+    # Header content, define db version and execute an SQL Query
+    headers = {
+        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'Content-Type': 'text/plain'
+    }
+
+    print('Collecting Data...')
+    # Here's where we send a POST message out to CUCM, we don't verify certificates.
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+
+    uglyxml = response.text.encode('utf8')
+    xmldata = xml.dom.minidom.parseString(uglyxml)
+    xml_pretty_str = xmldata.toprettyxml()
+    print('Data Collected. Please see file PhoneReport' + timestr + ccmip + '.xml.')
+
+    with open('PhoneReport' + timestr + ccmip + '.xml', 'w+') as file:
+        file.write(xml_pretty_str)
+
+
+def jabberlastloginreport():
+    # Define disablement of HTTPS Insecure Request error message.
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    # Define user input required for script; pub ip, username, pw
+    ccmip = str(input('What is the CUCM Pub IP?: '))
+    print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
+    version = str(input('What version is UCM?: '))
+    myusername = str(input('What is the GUI Username?: '))
+    mypassword = getpass('What is the GUI Password?: ')
+
+    # URL to hit for request against axl
+    url = ('https://' + ccmip + '/axl/')
+
+    # Payload to send; soap envelope
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Verifies the last time a Jabber user logged in, " \
+              "or the last time their profile was accessed-->\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT e.userid, cd.timelastaccessed\n " \
+              "           FROM enduser as e, credentialdynamic as cd, credential as cr\n            WHERE " \
+              "e.pkid=cr.fkenduser and e.tkuserprofile=1 and e.primarynodeid is not null and cr.tkcredential=3 and " \
+              "cr.pkid=cd.fkcredential\n            ORDER by cd.timelastaccessed\n         </sql>\n      " \
+              "</ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
+
+    # Header content, define db version and execute an SQL Query
+    headers = {
+        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'Content-Type': 'text/plain'
+    }
+
+    print('Collecting Data...')
+    # Here's where we send a POST message out to CUCM, we don't verify certificates.
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+
+    uglyxml = response.text.encode('utf8')
+    xmldata = xml.dom.minidom.parseString(uglyxml)
+    xml_pretty_str = xmldata.toprettyxml()
+    print('Data Collected. Please see file JabberLastLogin' + timestr + ccmip + '.xml.')
+
+    with open('JabberLastLogin' + timestr + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
 
