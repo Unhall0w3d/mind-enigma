@@ -27,46 +27,56 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 def menu():
     print()
     choice = input("""
-                      1: Pull Cisco Phone Info
-                      2: Pull Cisco Phone Logs
-                      3: CUCM Queries
-                      4: Undefined
+                      1: Cisco Phone Requests
+                      2: Cisco UCM Requests
+                      3: Unimplemented
                       Q: Quit
 
                       Selection: """)
 
     if choice == "1":
-        serialnumpull()
-        menu()
-    elif choice == "2":
-        ips = phonecollection()
-        [logcollect(ip_addr) for ip_addr in ips]
-        print('############# Files have been stored in ~/ in an IP specific folder #############')
-        menu()
-    elif choice == "3":
-        submenuchoice = input("""
-                          1: Pull UCM Device Defaults
-                          2: Pull UCM Phones Configured
-                          3: Pull Jabber Last Login Time
-                          4: Pull Devices w/ Static Firmware Assignment
-                          Q: Quit
+        phonemenuchoice = input("""
+                                1: Pull Cisco Phone Info
+                                2: Pull Cisco Phone Logs
+                                3: Pull Cisco Phone Registration
+                                Q: Quit
 
-                          Selection: """)
-        if submenuchoice == "1":
+                                Selection: """)
+        if phonemenuchoice == "1":
+            serialnumpull()
+            menu()
+        elif phonemenuchoice == "2":
+            ips = phonecollection()
+            [logcollect(ip_addr) for ip_addr in ips]
+            print('############# Files have been stored in ~/ in an IP specific folder #############')
+            menu()
+        elif phonemenuchoice == "3":
+            print('This option is being worked on and will be included in a future release.')
+            menu()
+    elif choice == "2":
+        ucmmenuchoice = input("""
+                                  1: Pull UCM Device Defaults
+                                  2: Pull UCM Phones Configured
+                                  3: Pull Jabber Last Login Time
+                                  4: Pull Devices w/ Static Firmware Assignment
+                                  Q: Quit
+
+                                  Selection: """)
+        if ucmmenuchoice == "1":
             devicedefaultsfetch()
             menu()
-        elif submenuchoice == "2":
+        elif ucmmenuchoice == "2":
             ccmphonereport()
             menu()
-        elif submenuchoice == "3":
+        elif ucmmenuchoice == "3":
             jabberlastloginreport()
             menu()
-        elif submenuchoice == "4":
+        elif ucmmenuchoice == "4":
             devicestaticfirmwareassignment()
             menu()
-        elif submenuchoice == "q" or "Q":
+        elif ucmmenuchoice == "q" or "Q":
             exit()
-    elif choice == "4":
+    elif choice == "3":
         print("Not Implemented")
         exit()
     elif choice == "q" or choice == "Q":
@@ -216,7 +226,7 @@ def devicedefaultsfetch():
     xml_pretty_str = xmldata.toprettyxml()
     print('Data Collected. Please see file DeviceDefaults' + timestr + ccmip + '.xml.')
 
-    with open('DeviceDefaults' + timestr + ccmip + '.xml', 'w+') as file:
+    with open('DeviceDefaults_' + timestr + '_' + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
 
@@ -259,7 +269,7 @@ def ccmphonereport():
     xml_pretty_str = xmldata.toprettyxml()
     print('Data Collected. Please see file PhoneReport' + timestr + ccmip + '.xml.')
 
-    with open('PhoneReport' + timestr + ccmip + '.xml', 'w+') as file:
+    with open('PhoneReport_' + timestr + '_' + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
 
@@ -302,7 +312,7 @@ def jabberlastloginreport():
     xml_pretty_str = xmldata.toprettyxml()
     print('Data Collected. Please see file JabberLastLogin' + timestr + ccmip + '.xml.')
 
-    with open('JabberLastLogin' + timestr + ccmip + '.xml', 'w+') as file:
+    with open('JabberLastLogin_' + timestr + '_' + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
 
@@ -345,7 +355,7 @@ def devicestaticfirmwareassignment():
     xml_pretty_str = xmldata.toprettyxml()
     print('Data Collected. Please see file DevicesStaticFirmwareAssignment' + timestr + ccmip + '.xml.')
 
-    with open('DevicesStaticFirmwareAssignment' + timestr + ccmip + '.xml', 'w+') as file:
+    with open('DevicesStaticFirmwareAssignment_' + timestr + '_' + ccmip + '.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
 
