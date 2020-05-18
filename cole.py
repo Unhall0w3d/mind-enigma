@@ -14,15 +14,11 @@ def checkregstate():
 
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
-    print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
-    version = str(input('What version is UCM?: '))
     myusername = str(input('What is the GUI Username?: '))
     mypassword = getpass('What is the GUI Password?: ')
     devname = str(input('What is the Device Name (e.g. SEPAABBCCDDEEFF): '))
 
     # URL to hit for request against axl
-    url = ('https://' + ccmip + '/axl/')
-
     response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
                                                          '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
                                                          '&Model=&SearchType=Name&&Protocol=Any&SearchPattern=' + devname, verify=False, auth=(myusername, mypassword))
