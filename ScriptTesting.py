@@ -8,7 +8,6 @@ import requests
 import urllib3
 import xml.dom.minidom
 from getpass import getpass
-from csv import reader
 import xml.etree.ElementTree as ET
 
 # Define Variables
@@ -25,18 +24,18 @@ def checkregstate():
     version = str(input('What version is UCM?: '))
     myusername = str(input('What is the GUI Username?: '))
     mypassword = getpass('What is the GUI Password?: ')
+    devicepool = str(input('What is the Device Pool name? (e.g. Remote_EST_DP): '))
 
     # URL to hit for request against axl
     url = ('https://' + ccmip + '/axl/')
 
     # Payload to send; soap envelope
-    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Verifies the last time a Jabber user logged in, " \
-              "or the last time their profile was accessed-->\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
-              "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM " \
-              "device d \n            INNER JOIN devicepool dp ON dp.pkid=d.fkdevicepool \n            WHERE dp.name " \
-              "like \"Remote_EST_DP\"\n         </sql>\n      </ns:executeSQLQuery>\n   " \
-              "</soapenv:Body>\n</soapenv:Envelope> "
+    payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
+              'xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      ' \
+              '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
+              'device d \n            INNER JOIN devicepool dp ON dp.pkid=d.fkdevicepool \n            WHERE dp.name ' \
+              'like \"' + devicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
+                                       '</soapenv:Body>\n</soapenv:Envelope> '
 
     # Header content, define db version and execute an SQL Query
     headers = {
@@ -58,18 +57,25 @@ def checkregstate():
     tree = ET.parse('regcheckdevicelist.xml')
     text = [child.text for child in tree.iter() if not child.text.strip() == '']
     for word in text:
-        with open('devicelist_' + timestr + '.csv', 'a+') as file:
-            file.write(word + ',')
-    inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".csv")
+        with open('devicelist_' + timestr + '.txt', 'a+') as file:
+            file.write(word + '\n')
+    inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".txt")
     with open(inputfile, 'r') as inputfile:
-        csv_reader = reader(inputfile)
-        for word in csv_reader:
+        lines = [line.rstrip() for line in inputfile]
+        for line in inputfile:
+            lines.append(line)
+    for devname in lines:
+        try:
             response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
-                                                         '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
-                                                         '&Model=&SearchType=Name&&Protocol=Any&SearchPattern=' + word)
+                                    '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
+                                    '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname, verify=False, auth=(myusername, mypassword))
+            print(response.content)
+        except Exception as e:
+            print(e)
 
-# Need to figure out how to parse reseponse as response.content isn't containing full xml for some reason... and
-# print to file screen & file device name, reg state, node it's registered to w/ descriptor line as first line.
-# seems like there could be a better way to do all of this.
+# XML Content is now received from CCM AST for each device pulled, response.content (xml string) is printed. Would
+# like to parse xml string (xml.fromstring?) and look for uniquely identifyable tag text indicating device is
+# registered, such as if tag text contains devname, consider it registered and print the tag text? Need to think on it.
+
 
 checkregstate()
