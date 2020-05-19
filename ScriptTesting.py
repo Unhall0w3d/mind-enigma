@@ -64,14 +64,22 @@ def checkregstate():
         lines = [line.rstrip() for line in inputfile]
         for line in inputfile:
             lines.append(line)
+    print('Registration Report Below.')
     for devname in lines:
         try:
             response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
                                     '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
-                                    '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname, verify=False, auth=(myusername, mypassword))
-            print(response.content)
-        except Exception as e:
-            print(e)
+                                    '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname, verify=False,
+                                    auth=(myusername, mypassword))
+            tree = ET.fromstring(response.content)
+            for item in tree.iter('Device'):
+                if item.attrib is not None:
+                    print(item.attrib['IpAddress'], item.attrib['Name'], item.attrib['Description'], item.attrib['ActiveLoadId'], item.attrib['DirNumber'])
+                else:
+                    print(devname + ' is not found in RISDB and is not Registered.')
+                continue
+        except (KeyboardInterrupt, SystemExit, Exception):
+            exit()
 
 # XML Content is now received from CCM AST for each device pulled, response.content (xml string) is printed. Would
 # like to parse xml string (xml.fromstring?) and look for uniquely identifyable tag text indicating device is
