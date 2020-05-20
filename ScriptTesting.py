@@ -63,17 +63,19 @@ def checkregstate():
     inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".csv")
     with open(inputfile, 'r') as file:
         devname = ''.join(file)
+        print(devname)
         print('Registration Report Below.')
         response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
                                                      '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
                                                      '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
                                 verify=False,
                                 auth=(myusername, mypassword))
-        tempvar = devname.split(",")
+        print(response.url)
+        devicelist = devname.split(",")
         tree = ET.fromstring(response.content)
         for item in tree.iter('DeviceReply'):
             if item.attrib['TotalDevices'] != '0':
-                for devicename in tempvar:
+                for devicename in devicelist:
                     notregcheck = response.content.decode('utf-8')
                     if notregcheck.find(devicename) == -1:
                         print('Device ' + devicename + ' is not registered.')
