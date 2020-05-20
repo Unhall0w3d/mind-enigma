@@ -33,7 +33,8 @@ def checkregstate():
     payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
               'xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      ' \
               '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
-              'device d \n            INNER JOIN devicepool dp ON dp.pkid=d.fkdevicepool \n            WHERE dp.name ' \
+              'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
+              'dp.name ' \
               'like \"' + devicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
                                        '</soapenv:Body>\n</soapenv:Envelope> '
 
@@ -65,29 +66,30 @@ def checkregstate():
         for line in inputfile:
             lines.append(line)
     print('Registration Report Below.')
+    print(lines)
     for devname in lines:
-        try:
-            response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
-                                                         '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
-                                                         '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
-                                    verify=False,
-                                    auth=(myusername, mypassword))
-            tree = ET.fromstring(response.content)
-            for item in tree.iter('DeviceReply'):
-                if item.attrib['TotalDevices'] == '1':
-                    for _item in tree.iter('Device'):
-                        print('IP Address: ' + _item.attrib['IpAddress'], 'Device Name: ' + _item.attrib['Name'],
-                              'Description: ' + _item.attrib['Description'],
-                              'Registered DNs: ' + _item.attrib['DirNumber'],
-                              'Phone Load: ' + _item.attrib['ActiveLoadId'])
-            continue
-        except (KeyboardInterrupt, SystemExit, Exception):
-            exit()
-
-
-# XML Content is now received from CCM AST for each device pulled, response.content (xml string) is printed. Would
-# like to parse xml string (xml.fromstring?) and look for uniquely identifyable tag text indicating device is
-# registered, such as if tag text contains devname, consider it registered and print the tag text? Need to think on it.
+        response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
+                                                     '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
+                                                     '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
+                                verify=False,
+                                auth=(myusername, mypassword))
+        tree = ET.fromstring(response.content)
+        for item in tree.iter('DeviceReply'):
+            if item.attrib['TotalDevices'] == '1':
+                if 'DirNumber' in item.attrib:
+                    for xmltag in tree.iter('Device'):
+                        print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
+                              'Description: ' + xmltag.attrib['Description'],
+                              'Registered DNs: ' + xmltag.attrib['DirNumber'],
+                              'Phone Load: ' + xmltag.attrib['ActiveLoadId'])
+                else:
+                    for xmltag in tree.iter('Device'):
+                        print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
+                              'Description: ' + xmltag.attrib['Description'],
+                              'Registered ' + xmltag.attrib['Status'])
+            if item.attrib['TotalDevices'] == '0':
+                print('Device ' + devname + ' does not appear to be registered.')
+                continue
 
 
 checkregstate()
