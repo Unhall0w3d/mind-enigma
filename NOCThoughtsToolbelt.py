@@ -22,6 +22,9 @@ from getpass import getpass
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
+# Define disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 
 # Define Main Menu
 def menu():
@@ -187,8 +190,6 @@ def serialnumpull():
 
 
 def devicedefaultsfetch():
-    # Define disablement of HTTPS Insecure Request error message.
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
@@ -231,9 +232,6 @@ def devicedefaultsfetch():
 
 
 def ccmphonereport():
-    # Define disablement of HTTPS Insecure Request error message.
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
     print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
@@ -274,9 +272,6 @@ def ccmphonereport():
 
 
 def jabberlastloginreport():
-    # Define disablement of HTTPS Insecure Request error message.
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
     print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
@@ -317,9 +312,6 @@ def jabberlastloginreport():
 
 
 def devicestaticfirmwareassignment():
-    # Define disablement of HTTPS Insecure Request error message.
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
     print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')

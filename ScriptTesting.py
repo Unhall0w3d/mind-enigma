@@ -2,8 +2,6 @@
 # -*- code:UTF-8 -*-
 
 import time
-import os
-import sys
 import requests
 import urllib3
 import xml.dom.minidom
@@ -13,11 +11,18 @@ import xml.etree.ElementTree as ET
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
 
+# Define disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def checkregstate():
-    # Define disablement of HTTPS Insecure Request error message.
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+def createdevstring():
+    tree = ET.parse('regcheckdevicelist.xml')
+    text = [child.text for child in tree.iter() if not child.text.strip() == '']
+    devicename = ",".join(text)
+    return devicename
+
+
+def infocollect():
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
     print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
@@ -25,9 +30,12 @@ def checkregstate():
     myusername = str(input('What is the GUI Username?: '))
     mypassword = getpass('What is the GUI Password?: ')
     devicepool = str(input('What is the Device Pool name? (e.g. Remote_EST_DP): '))
+    return ccmip, version, mypassword, myusername, devicepool
 
+
+def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool, devname):
     # URL to hit for request against axl
-    url = ('https://' + ccmip + '/axl/')
+    baseurl = ('https://' + cucmipaddr)
 
     # Payload to send; soap envelope
     payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
@@ -35,18 +43,33 @@ def checkregstate():
               '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
               'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
               'dp.name ' \
-              'like \"' + devicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
-                                       '</soapenv:Body>\n</soapenv:Envelope> '
+              'like \"' + cucmdevicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
+                                           '</soapenv:Body>\n</soapenv:Envelope> '
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
 
+    # Here's where we verify reachability of the AXL interface for DB dip.
+    try:
+        reachabilitycheck = requests.get(baseurl + '/axl', auth=(cucmusername, cucmpassword), verify=False)
+        if reachabilitycheck.status_code != 200:
+            print('AXL Interface at ' + baseurl + '/axl/ is not available, or some other error. '
+                                                  'Please verify CCM AXL Service Status.')
+            print(reachabilitycheck.status_code)
+            print('Contact script dev to create exception based on response code.')
+            exit()
+        elif reachabilitycheck.status_code == 200:
+            print('AXL Interface is working and accepting requests.')
+    except Exception as m:
+        print(m)
+    print()
     print('Collecting Data...')
-    # Here's where we send a POST message out to CUCM, we don't verify certificates.
-    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+    response = requests.request("POST", baseurl + '/axl/', headers=headers, data=payload, auth=(cucmusername,
+                                                                                                cucmpassword),
+                                verify=False)
 
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
@@ -55,22 +78,19 @@ def checkregstate():
     with open('regcheckdevicelist.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
-    tree = ET.parse('regcheckdevicelist.xml')
-    text = [child.text for child in tree.iter() if not child.text.strip() == '']
-    for word in text:
-        with open('devicelist_' + timestr + '.csv', 'a+') as file:
-            file.write(word + ',')
-    inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".csv")
-    with open(inputfile, 'r') as file:
-        devname = ''.join(file)
-        print(devname)
-        print('Registration Report Below.')
-        response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
-                                                     '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
-                                                     '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
+    # Call Function to create proper devname string to append to AST request
+    createdevstring()
+
+    # Inform the user what device pool this report is for.
+    print()
+    print('Registration Report Below For Device Pool ' + cucmdevicepool + '.')
+    print()
+    try:
+        response = requests.get(baseurl + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
+                                          '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
+                                          '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
                                 verify=False,
-                                auth=(myusername, mypassword))
-        print(response.url)
+                                auth=(cucmusername, cucmpassword))
         devicelist = devname.split(",")
         tree = ET.fromstring(response.content)
         for item in tree.iter('DeviceReply'):
@@ -82,12 +102,18 @@ def checkregstate():
                 for xmltag in tree.iter('Device'):
                     print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
                           'Description: ' + xmltag.attrib['Description'],
-                          'Registered ' + xmltag.attrib['Status'])
+                          'Registered: ' + xmltag.attrib['Status'])
             elif item.attrib['TotalDevices'] == '0':
                 print('No queried devices were registered per UCM AST API.')
                 print('Devices checked are listed below')
                 print(devname)
                 continue
+    except Exception as p:
+        print(p)
 
 
-checkregstate()
+cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool = infocollect()
+
+devname = createdevstring()
+
+checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool, devname)

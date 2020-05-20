@@ -13,6 +13,10 @@ Input Method(s):
 File input for device info check should be a .txt file in same-directory as the script.
 Device IP addresses should be listed one per line
 
+File input for cucm registration check should be a .csv file in same-directory as the script.
+Device Names (SEPAABBCCDDEEFF) should be a comma separated string.
+Example: SEPAABBCCDDEEFF,CIPCJDOE,BOULDER_CO_XCODE
+
 Required Module(s):
 subprocess, time, xml.etree.ElementTree, io > BytesIO, pycurl, requests, urllib3, xml.dom.minidom
 
