@@ -58,37 +58,33 @@ def checkregstate():
     tree = ET.parse('regcheckdevicelist.xml')
     text = [child.text for child in tree.iter() if not child.text.strip() == '']
     for word in text:
-        with open('devicelist_' + timestr + '.txt', 'a+') as file:
-            file.write(word + '\n')
-    inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".txt")
-    with open(inputfile, 'r') as inputfile:
-        lines = [line.rstrip() for line in inputfile]
-        for line in inputfile:
-            lines.append(line)
-    print('Registration Report Below.')
-    print(lines)
-    for devname in lines:
+        with open('devicelist_' + timestr + '.csv', 'a+') as file:
+            file.write(word + ',')
+    inputfile = os.path.join(sys.path[0], "devicelist_" + timestr + ".csv")
+    with open(inputfile, 'r') as file:
+        devname = ''.join(file)
+        print('Registration Report Below.')
         response = requests.get('https://' + ccmip + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
                                                      '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
                                                      '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
                                 verify=False,
                                 auth=(myusername, mypassword))
+        tempvar = devname.split(",")
         tree = ET.fromstring(response.content)
         for item in tree.iter('DeviceReply'):
-            if item.attrib['TotalDevices'] == '1':
-                if 'DirNumber' in item.attrib:
-                    for xmltag in tree.iter('Device'):
-                        print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
-                              'Description: ' + xmltag.attrib['Description'],
-                              'Registered DNs: ' + xmltag.attrib['DirNumber'],
-                              'Phone Load: ' + xmltag.attrib['ActiveLoadId'])
-                else:
-                    for xmltag in tree.iter('Device'):
-                        print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
-                              'Description: ' + xmltag.attrib['Description'],
-                              'Registered ' + xmltag.attrib['Status'])
-            if item.attrib['TotalDevices'] == '0':
-                print('Device ' + devname + ' does not appear to be registered.')
+            if item.attrib['TotalDevices'] != '0':
+                for devicename in tempvar:
+                    notregcheck = response.content.decode('utf-8')
+                    if notregcheck.find(devicename) == -1:
+                        print('Device ' + devicename + ' is not registered.')
+                for xmltag in tree.iter('Device'):
+                    print('IP Address: ' + xmltag.attrib['IpAddress'], 'Device Name: ' + xmltag.attrib['Name'],
+                          'Description: ' + xmltag.attrib['Description'],
+                          'Registered ' + xmltag.attrib['Status'])
+            elif item.attrib['TotalDevices'] == '0':
+                print('No queried devices were registered per UCM AST API.')
+                print('Devices checked are listed below')
+                print(devname)
                 continue
 
 
