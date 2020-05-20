@@ -14,6 +14,9 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Define disablement of HTTPS Insecure Request error message.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# URL to hit for request against axl
+baseurl = 'https://'
+
 
 def createdevstring():
     tree = ET.parse('regcheckdevicelist.xml')
@@ -33,10 +36,7 @@ def infocollect():
     return ccmip, version, mypassword, myusername, devicepool
 
 
-def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool, devname):
-    # URL to hit for request against axl
-    baseurl = ('https://' + cucmipaddr)
-
+def ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool):
     # Payload to send; soap envelope
     payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
               'xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      ' \
@@ -54,10 +54,10 @@ def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevic
 
     # Here's where we verify reachability of the AXL interface for DB dip.
     try:
-        reachabilitycheck = requests.get(baseurl + '/axl', auth=(cucmusername, cucmpassword), verify=False)
+        reachabilitycheck = requests.get(baseurl + cucmipaddr + '/axl', auth=(cucmusername, cucmpassword), verify=False)
         if reachabilitycheck.status_code != 200:
-            print('AXL Interface at ' + baseurl + '/axl/ is not available, or some other error. '
-                                                  'Please verify CCM AXL Service Status.')
+            print('AXL Interface at ' + baseurl + cucmipaddr + '/axl/ is not available, or some other error. '
+                                                               'Please verify CCM AXL Service Status.')
             print(reachabilitycheck.status_code)
             print('Contact script dev to create exception based on response code.')
             exit()
@@ -67,9 +67,8 @@ def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevic
         print(m)
     print()
     print('Collecting Data...')
-    response = requests.request("POST", baseurl + '/axl/', headers=headers, data=payload, auth=(cucmusername,
-                                                                                                cucmpassword),
-                                verify=False)
+    response = requests.request("POST", baseurl + cucmipaddr + '/axl/', headers=headers, data=payload,
+                                auth=(cucmusername, cucmpassword), verify=False)
 
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
@@ -78,6 +77,8 @@ def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevic
     with open('regcheckdevicelist.xml', 'w+') as file:
         file.write(xml_pretty_str)
 
+
+def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devname):
     # Call Function to create proper devname string to append to AST request
     createdevstring()
 
@@ -86,9 +87,9 @@ def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevic
     print('Registration Report Below For Device Pool ' + cucmdevicepool + '.')
     print()
     try:
-        response = requests.get(baseurl + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
-                                          '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
-                                          '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
+        response = requests.get(baseurl + cucmipaddr + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
+                                                       '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
+                                                       '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
                                 verify=False,
                                 auth=(cucmusername, cucmpassword))
         devicelist = devname.split(",")
@@ -112,8 +113,14 @@ def checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevic
         print(p)
 
 
+# User input collection
 cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool = infocollect()
 
+# Call DB Dip Function for Device List
+ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool)
+
+# Collect list of devices to hit AST interface with
 devname = createdevstring()
 
-checkregstate(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool, devname)
+# Hit AST interface
+checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devname)
