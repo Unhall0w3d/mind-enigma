@@ -35,8 +35,12 @@ def infocollect():
     version = str(input('What version is UCM?: '))
     myusername = str(input('What is the GUI Username?: '))
     mypassword = getpass('What is the GUI Password?: ')
+    return ccmip, version, mypassword, myusername
+
+
+def collectdevicepool():
     devicepool = str(input('What is the Device Pool name? (e.g. Remote_EST_DP): '))
-    return ccmip, version, mypassword, myusername, devicepool
+    return devicepool
 
 
 # Function that dips into ccm db and executes SQL Query via SOAP. Returns devices in specified device pool.
@@ -48,7 +52,7 @@ def ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool
               'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
               'dp.name ' \
               'like \"' + cucmdevicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
-                                           '</soapenv:Body>\n</soapenv:Envelope> '
+                                       '</soapenv:Body>\n</soapenv:Envelope> '
 
     # Header content, define db version and execute an SQL Query
     headers = {
@@ -63,10 +67,14 @@ def ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool
             print('AXL Interface at ' + baseurl + cucmipaddr + '/axl/ is not available, or some other error. '
                                                                'Please verify CCM AXL Service Status.')
             print(reachabilitycheck.status_code)
-            print('Contact script dev to create exception based on response code.')
+            print('Contact script dev to create exception or handle response code.')
             exit()
         elif reachabilitycheck.status_code == 200:
             print('AXL Interface is working and accepting requests.')
+    except requests.exceptions.ConnectionError:
+        print('Connection error occurred. Unable to get HTTP Response from CUCM AXL Interface. Check connectivity.')
+    except requests.exceptions.Timeout:
+        print('Connection timed out to UCM AXL Interface.')
     except Exception as m:
         print(m)
     print()
@@ -120,6 +128,10 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devnam
                 print('Contact Script Dev with behavior, scenario, and result if discrepencies found.')
                 print(devname)
                 continue
+    except requests.exceptions.ConnectionError:
+        print('Connection error occurred. Unable to get HTTP Response from CUCM AST Interface. Check connectivity.')
+    except requests.exceptions.Timeout:
+        print('Connection timed out to UCM AST Interface.')
     except Exception as p:
         print(p)
     # Perform cleanup of files generated.
@@ -127,7 +139,10 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devnam
 
 
 # User input collection provided by infocollect function
-cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool = infocollect()
+cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
+
+# Collect device pool
+cucmdevicepool = collectdevicepool()
 
 # Call DB Dip Function to execute sql query and prettyprint xml response to file
 ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool)
