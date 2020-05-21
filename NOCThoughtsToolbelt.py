@@ -10,7 +10,7 @@
 # Modules Imported for Script Functionality
 import subprocess
 import time
-import xml.etree.ElementTree
+import xml.etree.ElementTree as ET
 from io import BytesIO
 
 import pycurl
@@ -141,7 +141,7 @@ def getxmldata(ip_addr, uri):
     try:
         curl.perform()
         curl.close()
-        return xml.etree.ElementTree.fromstring((buffer.getvalue()))
+        return ET.fromstring((buffer.getvalue()))
     except pycurl.error:
         print('Connection Timed Out. No response after 5 seconds for ' + ip_addr + '. Trying next.')
         exit(1)
@@ -190,7 +190,6 @@ def serialnumpull():
 
 
 def devicedefaultsfetch():
-
     # Define user input required for script; pub ip, username, pw
     ccmip = str(input('What is the CUCM Pub IP?: '))
     print('Supported UCM SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')

@@ -38,8 +38,31 @@ def infocollect():
     return ccmip, version, mypassword, myusername
 
 
-def collectdevicepool():
-    devicepool = str(input('What is the Device Pool name? (e.g. Remote_EST_DP): '))
+def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT name\n            FROM " \
+              "devicepool\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
+    headers = {
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
+        'Content-Type': 'text/plain'
+    }
+    response = requests.request("POST", baseurl + cucmipaddr + '/axl/', headers=headers, data=payload,
+                                auth=(cucmusername, cucmpassword), verify=False)
+    uglyxml = response.text.encode('utf8')
+    xmldata = xml.dom.minidom.parseString(uglyxml)
+    xml_pretty_str = xmldata.toprettyxml()
+    with open('devicepoollist.xml', 'w+') as file:
+        file.write(xml_pretty_str)
+    parse = ET.parse('devicepoollist.xml')
+    entry = [child.text for child in parse.iter() if not child.text.strip() == '']
+    dplist = "\n".join(entry)
+    print()
+    print('Device Pools Available:')
+    print()
+    print(dplist)
+    print()
+    devicepool = str(input('What is the Device Pool name?: '))
     return devicepool
 
 
@@ -59,7 +82,6 @@ def ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool
         'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
-
     # Here's where we verify reachability of the AXL interface for DB dip.
     try:
         reachabilitycheck = requests.get(baseurl + cucmipaddr + '/axl', auth=(cucmusername, cucmpassword), verify=False)
@@ -97,7 +119,7 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devnam
 
     # Inform the user what device pool this report is for.
     print()
-    print('Registration Report Below For Device Pool ' + cucmdevicepool + '.')
+    print('Registration Report Below For Device Pool: ' + cucmdevicepool + '.')
     print()
     try:
         response = requests.get(baseurl + cucmipaddr + '/ast/ASTIsapi.dll?OpenDeviceSearch?Type=&NodeName'
@@ -124,9 +146,6 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devnam
             # We print the device name list (csv style) so the user can validate.
             elif item.attrib['TotalDevices'] == '0':
                 print('No queried devices were registered per UCM AST API.')
-                print('Devices checked are listed below. Verify in UCM GUI if they are registered.')
-                print('Contact Script Dev with behavior, scenario, and result if discrepencies found.')
-                print(devname)
                 continue
     except requests.exceptions.ConnectionError:
         print('Connection error occurred. Unable to get HTTP Response from CUCM AST Interface. Check connectivity.')
@@ -136,13 +155,14 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool, devnam
         print(p)
     # Perform cleanup of files generated.
     os.remove("regcheckdevicelist.xml")
+    os.remove("devicepoollist.xml")
 
 
 # User input collection provided by infocollect function
 cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
 
 # Collect device pool
-cucmdevicepool = collectdevicepool()
+cucmdevicepool = collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion)
 
 # Call DB Dip Function to execute sql query and prettyprint xml response to file
 ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool)
