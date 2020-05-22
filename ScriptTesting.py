@@ -8,6 +8,7 @@ import xml.dom.minidom
 from getpass import getpass
 import xml.etree.ElementTree as ET
 import os
+import numpy
 
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
@@ -92,6 +93,7 @@ def ucmdbdip(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool
             print('Contact script dev to create exception or handle response code.')
             exit()
         elif reachabilitycheck.status_code == 200:
+            print()
             print('AXL Interface is working and accepting requests.')
     except requests.exceptions.ConnectionError:
         print('Connection error occurred. Unable to get HTTP Response from CUCM AXL Interface. Check connectivity.')
