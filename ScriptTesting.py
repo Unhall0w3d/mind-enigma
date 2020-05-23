@@ -8,7 +8,6 @@ import xml.dom.minidom
 from getpass import getpass
 import xml.etree.ElementTree as ET
 import os
-import numpy
 
 # Define Variables
 timestr = time.strftime("%Y%m%d-%H%M%S")
