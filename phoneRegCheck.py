@@ -159,12 +159,14 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
                     device = response.attrib['Name']
                     descr = response.attrib['Description']
                     status = response.attrib['Status']
-                    print(ipaddr, device, descr, status)
+                    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
                     with open('RegisteredDevicesReport' + timestr + '.txt', 'a+') as rdr:
                         rdr.write(ipaddr + ' ' + device + ' ' + descr + ' ' + status + '\n')
                     continue
             for devicename in devicelist:
                 if response.attrib['Name'] != devicename:
+                    print(
+                        'Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
                     with open('UnregisteredDevicesReport' + timestr + '.txt', 'a+') as udr:
                         udr.write('Device ' + devicename + ' is not registered.' + '\n')
         except requests.exceptions.ConnectionError:
