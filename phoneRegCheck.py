@@ -159,14 +159,11 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
                     device = response.attrib['Name']
                     descr = response.attrib['Description']
                     status = response.attrib['Status']
-                    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
                     with open('RegisteredDevicesReport' + timestr + '.txt', 'a+') as rdr:
                         rdr.write(ipaddr + ' ' + device + ' ' + descr + ' ' + status + '\n')
                     continue
             for devicename in devicelist:
                 if response.attrib['Name'] != devicename:
-                    print(
-                        'Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
                     with open('UnregisteredDevicesReport' + timestr + '.txt', 'a+') as udr:
                         udr.write('Device ' + devicename + ' is not registered.' + '\n')
         except requests.exceptions.ConnectionError:
@@ -175,6 +172,8 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
             print('Connection timed out to UCM AST Interface.')
         except Exception as p:
             print(p)
+    print('Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
+    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
 
 
 # User input collection provided by infocollect function
