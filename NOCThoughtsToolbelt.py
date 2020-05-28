@@ -45,7 +45,7 @@ def menu():
         phonemenuchoice = input("""
                                 1: Pull Cisco Phone Info
                                 2: Pull Cisco Phone Logs
-                                3: Pull Cisco Phone Registration
+                                3: Pull Cisco Device Registration
                                 Q: Quit
 
                                 Selection: """)
@@ -444,13 +444,11 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
             devicelist = devname.split(",")
             xmlresponse = ET.fromstring(response.content)
             for item in xmlresponse.iter('DeviceReply'):
-                # If the amount of devices found is not zero, proceed to look for the device name. If it's not found,
-                # say so
                 if item.attrib['TotalDevices'] == '0':
                     print('No queried devices were registered per UCM AST API.')
                     exit()
                 else:
-                    continue
+                    break
             xmltag = xmlresponse.findall('.//ReplyNode/Device')
             for response in xmltag:
                 if response.attrib['Name'] in devicelist:
@@ -458,13 +456,11 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
                     device = response.attrib['Name']
                     descr = response.attrib['Description']
                     status = response.attrib['Status']
-                    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
                     with open('RegisteredDevicesReport' + timestr + '.txt', 'a+') as rdr:
                         rdr.write(ipaddr + ' ' + device + ' ' + descr + ' ' + status + '\n')
                     continue
             for devicename in devicelist:
                 if response.attrib['Name'] != devicename:
-                    print('Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
                     with open('UnregisteredDevicesReport' + timestr + '.txt', 'a+') as udr:
                         udr.write('Device ' + devicename + ' is not registered.' + '\n')
         except requests.exceptions.ConnectionError:
@@ -475,6 +471,8 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
             print(p)
     os.remove("regcheckdevicelist.xml")
     os.remove("devicepoollist.xml")
+    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
+    print('Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
 
 
 # Call Menu
