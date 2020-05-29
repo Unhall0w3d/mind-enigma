@@ -504,6 +504,6 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
 # Check if tmp directory exists.
 if os.path.exists(dirname) is False:
     os.mkdir(dirname)
-    print('Directory ' + dirname + ' has been created. Generated reports will be found here.')
+    print('Folder ' + dirname + ' has been created in current directory. Generated reports will be found there.')
 # Call Menu
 menu()
