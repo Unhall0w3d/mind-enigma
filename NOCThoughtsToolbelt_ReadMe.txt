@@ -7,7 +7,7 @@ Use Case(s):
 Cisco Phone Info Pull - Useful when checking for registration state on Cisco Phones by IP, or collecting Serial Numbers for SmartNet True-up.
 Cisco Phone Log Pull - Useful to collect all Cisco Phone Logs on a phone when working with Cisco TAC or reviewing logs for various phone issues.
 UCM Device Defaults - Useful to pull pre UCM Software or Device Pack upgrade in the event reverting phone firmwares is required (due to bug or other issue/requirement).
-
+Pull Cisco Device Registration -
 
 Input Method(s):
 File input for device info check should be a .txt file in same-directory as the script.

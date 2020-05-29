@@ -55,31 +55,38 @@ def infocollect():
 
 # Function to query UCM for device pool list and present to the user, in case they don't know. Returns selected DP.
 def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
-    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+    try:
+        payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
               "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT name\n            FROM " \
               "devicepool\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
-    headers = {
+        headers = {
         'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
-    }
-    response = requests.request("POST", baseurl + cucmipaddr + '/axl/', headers=headers, data=payload,
+        }
+        response = requests.request("POST", baseurl + cucmipaddr + '/axl/', headers=headers, data=payload,
                                 auth=(cucmusername, cucmpassword), verify=False)
-    uglyxml = response.text.encode('utf8')
-    xmldata = xml.dom.minidom.parseString(uglyxml)
-    xml_pretty_str = xmldata.toprettyxml()
-    with open('devicepoollist.xml', 'w+') as file:
-        file.write(xml_pretty_str)
-    parse = ET.parse('devicepoollist.xml')
-    entry = [child.text for child in parse.iter() if not child.text.strip() == '']
-    dplist = "\n".join(entry)
-    print()
-    print('Device Pools Available:')
-    print()
-    print(dplist)
-    print()
-    devicepool = str(input('What is the Device Pool name?: '))
-    return devicepool
+        uglyxml = response.text.encode('utf8')
+        xmldata = xml.dom.minidom.parseString(uglyxml)
+        xml_pretty_str = xmldata.toprettyxml()
+        with open('devicepoollist.xml', 'w+') as file:
+            file.write(xml_pretty_str)
+        parse = ET.parse('devicepoollist.xml')
+        entry = [child.text for child in parse.iter() if not child.text.strip() == '']
+        dplist = "\n".join(entry)
+        print()
+        print('Device Pools Available:')
+        print()
+        print(dplist)
+        print()
+        devicepool = str(input('What is the Device Pool name?: '))
+        return devicepool
+    except requests.exceptions.ConnectionError:
+        print('Connection error occurred. Unable to get HTTP Response from CUCM AXL Interface. Check connectivity.')
+    except requests.exceptions.Timeout:
+        print('Connection timed out to UCM AXL Interface.')
+    except Exception as m:
+        print(m)
 
 
 # Function that dips into ccm db and executes SQL Query via SOAP. Returns devices in specified device pool.
@@ -159,22 +166,23 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, cucmdevicepool):
                     device = response.attrib['Name']
                     descr = response.attrib['Description']
                     status = response.attrib['Status']
-                    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
                     with open('RegisteredDevicesReport' + timestr + '.txt', 'a+') as rdr:
                         rdr.write(ipaddr + ' ' + device + ' ' + descr + ' ' + status + '\n')
+                    devicelist.remove(response.attrib['Name'])
                     continue
             for devicename in devicelist:
                 if response.attrib['Name'] != devicename:
-                    print(
-                        'Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
                     with open('UnregisteredDevicesReport' + timestr + '.txt', 'a+') as udr:
                         udr.write('Device ' + devicename + ' is not registered.' + '\n')
+                    devicelist.remove(devicename)
         except requests.exceptions.ConnectionError:
             print('Connection error occurred. Unable to get HTTP Response from CUCM AST Interface. Check connectivity.')
         except requests.exceptions.Timeout:
             print('Connection timed out to UCM AST Interface.')
         except Exception as p:
             print(p)
+    print('Report for Unregistered Devices can be found in UnregisteredDevicesReport' + timestr + '.txt')
+    print('Report for Registered Devices can be found in RegisteredDevicesReport' + timestr + '.txt')
 
 
 # User input collection provided by infocollect function
