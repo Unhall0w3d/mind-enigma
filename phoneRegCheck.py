@@ -74,7 +74,8 @@ def infocollect():
     try:
         r = requests.get(axlurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
         if r.status_code != 200:
-            print('AXL Interface is unreachable. Please check connectivity at https://<ucm-ip>/axl.')
+            print('AXL Interface check failed. Please check connectivity at https://<ucm-ip>/axl.')
+            print('Ensure the credentials and version info is correct.')
             print('Script Exiting.')
             exit()
         elif r.status_code == 200:
