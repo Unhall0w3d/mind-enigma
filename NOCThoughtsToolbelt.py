@@ -162,6 +162,7 @@ def menu():
         menu()
 
 
+# Menu Opt 1 > 1
 # Function to perform request to Cisco Phone and store response in buffer.
 def getxmldata(ip_addr, uri):
     buffer = BytesIO()
@@ -179,6 +180,7 @@ def getxmldata(ip_addr, uri):
         print('Connection Timed Out. No response after 5 seconds for ' + ip_addr + '.')
 
 
+# Menu Opt 1 > 1
 # Function to perform data pull for returned xml code based on tags.
 def serialnumpull():
     xmluris = ['/NetworkConfigurationX', '/DeviceInformationX']
@@ -220,6 +222,20 @@ def serialnumpull():
     return
 
 
+# Menu Opt 1 > 2
+# Function that requests how many phones and their IPs for log collection
+def phonecollection():
+    num_phones = int(input('How many phones?: '))
+    if type(num_phones) != int:
+        print('Error: Expected Integer.')
+        exit(1)
+    ips = []
+    for phonecount in range(num_phones):
+        ips.append(input('What is the phone IP address?: '))
+    return ips
+
+
+# Menu Opt 1 > 2
 # Log collection function that runs wget against consolelog url to pull recursively.
 def logcollect(ip_addr):
     destfolder = str('~/')
@@ -248,6 +264,29 @@ def logcollect(ip_addr):
             print(e)
 
 
+# Info Collect for ip, username, pw, version and initial status code check for all ucm based functions
+# Function that gathers input from user for required parameters.
+def infocollect():
+    # Define user input required for script; pub ip, username, pw.
+    ccmip = str(input('What is the target UC Server Pub IP?: '))
+    print('Supported SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
+    version = str(input('What version is the UC Server?: '))
+    myusername = str(input('What is the GUI Username?: '))
+    mypassword = getpass('What is the GUI Password?: ')
+    try:
+        r = requests.get(axlurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
+        if r.status_code != 200:
+            print('AXL Interface is unreachable. Please check connectivity at https://<ucm-ip>/axl.')
+            print('Ensure the credentials and version info is correct.')
+            print('Script Exiting.')
+            exit()
+        elif r.status_code == 200:
+            return ccmip, version, mypassword, myusername
+    except Exception as e:
+        print(e)
+
+
+# Menu Opt 2 > 1
 # Function to perform a request against UCM for Device Defaults data and stores response in xml file.
 def devicedefaultsfetch(ccmip, version, mypassword, myusername):
     # URL to hit for request against axl
@@ -284,6 +323,7 @@ def devicedefaultsfetch(ccmip, version, mypassword, myusername):
         file.write(xml_pretty_str)
 
 
+# Menu Opt 2 > 2
 # Function to perform a request against UCM for basic phone name, dn, descrip and partition data and stores response
 # in xml file.
 def ccmphonereport(ccmip, version, mypassword, myusername):
@@ -316,6 +356,7 @@ def ccmphonereport(ccmip, version, mypassword, myusername):
         file.write(xml_pretty_str)
 
 
+# Menu Opt 2 > 3
 # Function to perform a request against Cisco IM&P Server for information relating to last login time for user
 # account and stores response in xml file.
 def jabberlastloginreport(ccmip, version, mypassword, myusername):
@@ -346,6 +387,7 @@ def jabberlastloginreport(ccmip, version, mypassword, myusername):
         file.write(xml_pretty_str)
 
 
+# Menu Opt 2 > 4
 # Function to perform a request against UCM for Devices with Static Firmware Assignments and stores response in xml
 # file.
 def devicestaticfirmwareassignment(ccmip, version, mypassword, myusername):
@@ -378,26 +420,19 @@ def devicestaticfirmwareassignment(ccmip, version, mypassword, myusername):
         file.write(xml_pretty_str)
 
 
-# Function that gathers input from user for required parameters.
-def infocollect():
-    # Define user input required for script; pub ip, username, pw.
-    ccmip = str(input('What is the target UC Server Pub IP?: '))
-    print('Supported SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
-    version = str(input('What version is the UC Server?: '))
-    myusername = str(input('What is the GUI Username?: '))
-    mypassword = getpass('What is the GUI Password?: ')
-    try:
-        r = requests.get(axlurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
-        if r.status_code != 200:
-            print('AXL Interface is unreachable. Please check connectivity at https://<ucm-ip>/axl.')
-            print('Script Exiting.')
-            exit()
-        elif r.status_code == 200:
-            return ccmip, version, mypassword, myusername
-    except Exception as e:
-        print(e)
+# Option 1 > 4
+# Function that constructs csv string to check against ucm from file input.
+def inputfetch():
+    inputfile = input('What is the name of the input text file?: ')
+    with open(inputfile) as txtfile:
+        lines = [line.rstrip() for line in txtfile]
+        for line in txtfile:
+            lines.append(line)
+        x = ",".join(lines)
+    return x
 
 
+# Options 1 > 3, 5
 # Chunker function that breaks up list 'text' into chunks of 200
 def chunker(text, chunk_size):
     iterlist = iter(text)
@@ -413,6 +448,7 @@ def chunker(text, chunk_size):
             return
 
 
+# Options 1 > 3, 5
 # Function that parses xml file and strips xml specific data and joins each device name in in the xml doc.
 def get_devicenames(chunk_size=200):
     tree = ET.parse('regcheckdevicelist.xml')
@@ -421,6 +457,7 @@ def get_devicenames(chunk_size=200):
         yield ",".join(text)
 
 
+# Option 1 > 3
 # Function to query UCM for device pool list and present to the user, in case they don't know. Returns selected DP.
 def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
@@ -450,6 +487,7 @@ def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
     return devicepool
 
 
+# Option 1 > 3
 # Function that dips into ccm db and executes SQL Query via SOAP. Returns devices in specified device pool.
 def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool):
     # Define payload specific to ucmdbdip for specified device pool.
@@ -477,6 +515,7 @@ def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicep
         file.write(xml_pretty_str)
 
 
+# Option 1 > 5
 # Function that dips into ccm db and executes SQL Query via SOAP. Returns devices in specified device pool.
 def ucmdbdip_all(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # Define payload specific to ucmdbdip for all devices.
@@ -502,6 +541,7 @@ def ucmdbdip_all(cucmipaddr, cucmversion, cucmpassword, cucmusername):
         file.write(xml_pretty_str)
 
 
+# Options 1 > 3, 4, 5
 # Function to hit AST interface using device name list generated by createdevstring function.
 def checkregstate(cucmipaddr, cucmpassword, cucmusername, devname):
     try:
@@ -551,5 +591,6 @@ if os.path.exists(dirname) is False:
     print('####################################################################################################')
     print('Folder ' + dirname + ' has been created in current directory. Generated reports will be found there.')
     print('####################################################################################################')
+
 # Call Menu
 menu()
