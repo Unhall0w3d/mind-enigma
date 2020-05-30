@@ -1,4 +1,5 @@
 import requests
+import urllib3
 from getpass import getpass
 
 # Define disablement of HTTPS Insecure Request error message.
