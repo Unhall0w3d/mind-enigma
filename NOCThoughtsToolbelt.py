@@ -280,7 +280,7 @@ def infocollect():
     cucmpassword = getpass('What is the GUI Password?: ')
     try:
         r = requests.get(axlurl + cucmipaddr + '/axl', auth=(cucmusername, cucmpassword), verify=False)
-        if r.status_code != 200:
+        if r.status_code == 401:
             print('AXL Interface is unreachable. Please check connectivity at https://<ucm-ip>/axl.')
             print('Ensure the credentials and version info is correct.')
             print('Script Exiting.')
@@ -433,11 +433,18 @@ def devicestaticfirmwareassignment(cucmipaddr, cucmversion, cucmpassword, cucmus
 
 # Menu Opt 2 > 5
 # Function to perform a request against UCM for Device Defaults data and stores response in xml file.
-def homeclustercheck(cucmipaddr, cucmversion, cucmusername, cucmpassword):
+def homeclustercheck(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
-    url = ('https://' + cucmipaddr + '/axl/')
+    url = (axlurl + cucmipaddr + '/axl/')
     # Payload to send; soap envelope
-    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <ns:executeSQLQuery sequence=\"\">\n         <sql>\n         SELECT eu.userid AS id, eu.firstname AS first, eu.lastname AS last, eu.islocaluser AS homecluster, ucp.name AS serviceprofile\n         FROM enduser AS eu\n         INNER JOIN ucserviceprofile AS ucp ON ucp.pkid=eu.fkucserviceprofile WHERE eu.islocaluser='t'\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope>"
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n  " \
+                                                                         " <soapenv:Body>\n      " \
+              "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n         SELECT eu.userid AS id, eu.firstname AS " \
+              "first, eu.lastname AS last, eu.islocaluser AS homecluster, ucp.name AS serviceprofile\n         FROM " \
+              "enduser AS eu\n         INNER JOIN ucserviceprofile AS ucp ON ucp.pkid=eu.fkucserviceprofile WHERE " \
+              "eu.islocaluser='t'\n         </sql>\n      </ns:executeSQLQuery>\n   " \
+              "</soapenv:Body>\n</soapenv:Envelope> "
     # Header content, define db version and execute an SQL Query
     headers = {
         'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
@@ -452,7 +459,7 @@ def homeclustercheck(cucmipaddr, cucmversion, cucmusername, cucmpassword):
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
     print('Data Collected. Please see file HomeClusterReport' + timestr + cucmipaddr + '.xml.')
-    with open(os.path.join(completepath, 'HomeClusterReport_' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
+    with open(os.path.join(completepath, 'HomeClusterReport' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
         file.write(xml_pretty_str)
 
 
