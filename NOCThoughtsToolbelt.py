@@ -4,7 +4,7 @@
 #####################################
 # Script created by Ken Perry, 2020 #
 #       NOC THOUGHTS BLOG           #
-# https://nocthoughts.wordpress.com #
+#    https://www.nocthoughts.com    #
 #####################################
 
 # Modules Imported for Script Functionality
@@ -43,13 +43,12 @@ completepath = os.path.join(dir_path,dirname)
 def menu():
     print()
     choice = input("""
-                      1: Cisco Phone Requests
-                      2: Cisco UCM Requests
-                      3: Unimplemented
-                      Q: Quit
+        1: Cisco Phone Requests
+        2: Cisco UCM Requests
+        3: Unimplemented
+        Q: Quit
 
-                      Selection: """)
-
+        Selection: """)
     if choice == "1":
         phonemenuchoice = input("""
         1: Pull Cisco Phone Info
@@ -504,7 +503,7 @@ def get_devicenames(chunk_size=200):
 # Function to query UCM for device pool list and present to the user, in case they don't know. Returns selected DP.
 def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + version + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT name\n            FROM " \
               "devicepool\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
     headers = {
@@ -535,7 +534,8 @@ def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
 def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool):
     # Define payload specific to ucmdbdip for specified device pool.
     payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
-              'xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      ' \
+              'xmlns:ns=\"http://www.cisco.com/AXL/API/' + cucmversion + '\">\n   <soapenv:Header/>\n  ' \
+                                                                         ' <soapenv:Body>\n      ' \
               '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
               'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
               'dp.name ' \
@@ -564,7 +564,8 @@ def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicep
 def ucmdbdip_all(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # Define payload specific to ucmdbdip for all devices.
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n " \
+                                                                         "  <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name\n            FROM " \
               "device\n            AS d order by d.name\n         </sql>\n      </ns:executeSQLQuery>\n   " \
               "</soapenv:Body>\n</soapenv:Envelope> "

@@ -1,3 +1,12 @@
+#!/usr/var/python
+# -*- code:UTF-8 -*-
+
+#####################################
+# Script created by Ken Perry, 2020 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
+
 import requests
 import urllib3
 from getpass import getpass

@@ -1,6 +1,13 @@
 #!/usr/var/python
 # -*- code:UTF-8 -*-
 
+#####################################
+# Script created by Ken Perry, 2020 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
+
+
 # Define Imports
 import time
 import requests
