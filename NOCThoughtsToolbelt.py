@@ -130,6 +130,7 @@ def menu():
                                   2: Pull UCM Phones Configured
                                   3: Pull Jabber Last Login Time
                                   4: Pull Devices w/ Static Firmware Assignment
+                                  5: Pull Home Cluster Report
                                   Q: Quit
 
                                   Selection: """)
@@ -151,7 +152,7 @@ def menu():
             exit()
         elif ucmmenuchoice == "5":
             cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
-            homeclustercheck(cucmipaddr, cucmversion, cucmusername, cucmpassword)
+            homeclustercheck(cucmipaddr, cucmversion, cucmpassword, cucmusername)
             exit()
         elif ucmmenuchoice == "q" or "Q":
             exit()
@@ -272,20 +273,20 @@ def logcollect(ip_addr):
 # Function that gathers input from user for required parameters.
 def infocollect():
     # Define user input required for script; pub ip, username, pw.
-    ccmip = str(input('What is the target UC Server Pub IP?: '))
+    cucmipaddr = str(input('What is the target UC Server Pub IP?: '))
     print('Supported SQL DB Versions: 12.5 | 12.0 | 11.5 | 11.0 | 10.5 | 10.0 | 9.1 | 9.0')
-    version = str(input('What version is the UC Server?: '))
-    myusername = str(input('What is the GUI Username?: '))
-    mypassword = getpass('What is the GUI Password?: ')
+    cucmversion = str(input('What version is the UC Server?: '))
+    cucmusername = str(input('What is the GUI Username?: '))
+    cucmpassword = getpass('What is the GUI Password?: ')
     try:
-        r = requests.get(axlurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
+        r = requests.get(axlurl + cucmipaddr + '/axl', auth=(cucmusername, cucmpassword), verify=False)
         if r.status_code != 200:
             print('AXL Interface is unreachable. Please check connectivity at https://<ucm-ip>/axl.')
             print('Ensure the credentials and version info is correct.')
             print('Script Exiting.')
             exit()
         elif r.status_code == 200:
-            return ccmip, version, mypassword, myusername
+            return cucmipaddr, cucmversion, cucmpassword, cucmusername
     except Exception as e:
         print(e)
 
@@ -295,7 +296,6 @@ def infocollect():
 def devicedefaultsfetch(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
     url = (axlurl + cucmipaddr + '/axl/')
-
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
               "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n<!--" \
@@ -433,22 +433,11 @@ def devicestaticfirmwareassignment(cucmipaddr, cucmversion, cucmpassword, cucmus
 
 # Menu Opt 2 > 5
 # Function to perform a request against UCM for Device Defaults data and stores response in xml file.
-def homeclustercheck(cucmipaddr, cucmversion, cucmpassword, cucmusername):
+def homeclustercheck(cucmipaddr, cucmversion, cucmusername, cucmpassword):
     # URL to hit for request against axl
-    url = (axlurl + cucmipaddr + '/axl/')
+    url = ('https://' + cucmipaddr + '/axl/')
     # Payload to send; soap envelope
-    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n  " \
-                                                                     "    <ns:executeSQLQuery sequence=\"\">\n        " \
-                                                                     " <sql>\n         SELECT eu.userid AS id, " \
-                                                                     "eu.firstname AS first, eu.lastname AS last, " \
-                                                                     "eu.islocaluser AS homecluster, ucp.name AS " \
-                                                                     "serviceprofile\n         FROM enduser AS eu\n   " \
-                                                                     "      INNER JOIN ucserviceprofile AS ucp ON " \
-                                                                     "ucp.pkid=eu.fkucserviceprofile WHERE " \
-                                                                     "eu.islocaluser='t'\n         </sql>\n      " \
-                                                                     "</ns:executeSQLQuery>\n   " \
-                                                                     "</soapenv:Body>\n</soapenv:Envelope> "
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      <ns:executeSQLQuery sequence=\"\">\n         <sql>\n         SELECT eu.userid AS id, eu.firstname AS first, eu.lastname AS last, eu.islocaluser AS homecluster, ucp.name AS serviceprofile\n         FROM enduser AS eu\n         INNER JOIN ucserviceprofile AS ucp ON ucp.pkid=eu.fkucserviceprofile WHERE eu.islocaluser='t'\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope>"
     # Header content, define db version and execute an SQL Query
     headers = {
         'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
