@@ -149,6 +149,10 @@ def menu():
             cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
             devicestaticfirmwareassignment(cucmipaddr, cucmversion, cucmpassword, cucmusername)
             exit()
+        elif ucmmenuchoice == "5":
+            cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
+            homeclustercheck(cucmipaddr, cucmversion, cucmusername, cucmpassword)
+            exit()
         elif ucmmenuchoice == "q" or "Q":
             exit()
     elif choice == "3":
@@ -288,13 +292,13 @@ def infocollect():
 
 # Menu Opt 2 > 1
 # Function to perform a request against UCM for Device Defaults data and stores response in xml file.
-def devicedefaultsfetch(ccmip, version, mypassword, myusername):
+def devicedefaultsfetch(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
-    url = (axlurl + ccmip + '/axl/')
+    url = (axlurl + cucmipaddr + '/axl/')
 
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + version + "\">\n<!--" \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n<!--" \
                                                                      "Like https://[CCM-IP-ADDRESS]/ccmadmin " \
                                                                      "> Device > " \
               "Device Settings > Device Defaults -->\n   <soapenv:Header/>\n   <soapenv:Body>\n     " \
@@ -309,30 +313,31 @@ def devicedefaultsfetch(ccmip, version, mypassword, myusername):
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
+    print()
     print('Collecting Data...')
+    print()
     # Here's where we send a POST message out to CUCM, we don't verify certificates.
-    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(cucmusername, cucmpassword), verify=False)
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
-    print('Data Collected. Please see file DeviceDefaults' + timestr + ccmip + '.xml.')
-    with open(os.path.join(completepath, 'DeviceDefaults_' + timestr + '_' + ccmip + '.xml'), 'w+') as file:
+    print('Data Collected. Please see file DeviceDefaults' + timestr + cucmipaddr + '.xml.')
+    with open(os.path.join(completepath, 'DeviceDefaults_' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
         file.write(xml_pretty_str)
 
 
 # Menu Opt 2 > 2
 # Function to perform a request against UCM for basic phone name, dn, descrip and partition data and stores response
 # in xml file.
-def ccmphonereport(ccmip, version, mypassword, myusername):
+def ccmphonereport(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
-    url = (axlurl + ccmip + '/axl/')
-
+    url = (axlurl + cucmipaddr + '/axl/')
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!-- SQL Data Pull for Device Name, Description, " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n<!-- SQL Data Pull for Device Name, Description, " \
               "DN and Partition the DN Sits in for Basic Reporting -->\n   <soapenv:Header/>\n   <soapenv:Body>\n     " \
               " <ns:executeSQLQuery sequence=\"\">\n         <sql>\n\t\t\tSELECT d.name,d.description,n.dnorpattern " \
               "as DN,rp.name as partition\n\t\t\tFROM device as d\n\t\t\tINNER join devicenumplanmap as dmap on " \
@@ -342,29 +347,31 @@ def ccmphonereport(ccmip, version, mypassword, myusername):
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
+    print()
     print('Collecting Data...')
+    print()
     # Here's where we send a POST message out to CUCM, we don't verify certificates.
-    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(cucmusername, cucmpassword), verify=False)
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
-    print('Data Collected. Please see file PhoneReport' + timestr + ccmip + '.xml.')
-    with open(os.path.join(completepath, 'PhoneReport_' + timestr + '_' + ccmip + '.xml'), 'w+') as file:
+    print('Data Collected. Please see file PhoneReport' + timestr + cucmipaddr + '.xml.')
+    with open(os.path.join(completepath, 'PhoneReport_' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
         file.write(xml_pretty_str)
 
 
 # Menu Opt 2 > 3
 # Function to perform a request against Cisco IM&P Server for information relating to last login time for user
 # account and stores response in xml file.
-def jabberlastloginreport(ccmip, version, mypassword, myusername):
+def jabberlastloginreport(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
-    url = (axlurl + ccmip + '/axl/')
+    url = (axlurl + cucmipaddr + '/axl/')
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!--Verifies the last time a Jabber user logged in, " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n<!--Verifies the last time a Jabber user logged in, " \
               "or the last time their profile was accessed-->\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT e.userid, cd.timelastaccessed\n " \
               "           FROM enduser as e, credentialdynamic as cd, credential as cr\n            WHERE " \
@@ -373,29 +380,31 @@ def jabberlastloginreport(ccmip, version, mypassword, myusername):
               "</ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
+    print()
     print('Collecting Data...')
+    print()
     # Here's where we send a POST message out to CUCM, we don't verify certificates.
-    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(cucmusername, cucmpassword), verify=False)
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
-    print('Data Collected. Please see file JabberLastLogin' + timestr + ccmip + '.xml.')
-    with open(os.path.join(completepath, 'JabberLastLogin_' + timestr + '_' + ccmip + '.xml'), 'w+') as file:
+    print('Data Collected. Please see file JabberLastLogin' + timestr + cucmipaddr + '.xml.')
+    with open(os.path.join(completepath, 'JabberLastLogin_' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
         file.write(xml_pretty_str)
 
 
 # Menu Opt 2 > 4
 # Function to perform a request against UCM for Devices with Static Firmware Assignments and stores response in xml
 # file.
-def devicestaticfirmwareassignment(ccmip, version, mypassword, myusername):
+def devicestaticfirmwareassignment(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     # URL to hit for request against axl
-    url = (axlurl + ccmip + '/axl/')
+    url = (axlurl + cucmipaddr + '/axl/')
     # Payload to send; soap envelope
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n<!-- Like https://[CCM-IP-ADDRESS]/ccmadmin > Device " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n<!-- Like https://[CCM-IP-ADDRESS]/ccmadmin > Device " \
               "> Device Settings > Device Firmware Load Information -->\n   <soapenv:Header/>\n   <soapenv:Body>\n    " \
               "  <ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name, " \
               "d.specialloadinformation, d.description, tp.name AS model\n            FROM device AS d\n            " \
@@ -405,18 +414,56 @@ def devicestaticfirmwareassignment(ccmip, version, mypassword, myusername):
 
     # Header content, define db version and execute an SQL Query
     headers = {
-        'SOAPAction': 'CUCM:DB ver=' + version + ' executeSQLQuery',
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
         'Content-Type': 'text/plain'
     }
+    print()
     print('Collecting Data...')
+    print()
     # Here's where we send a POST message out to CUCM, we don't verify certificates.
-    response = requests.request("POST", url, headers=headers, data=payload, auth=(myusername, mypassword), verify=False)
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(cucmusername, cucmpassword), verify=False)
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
-    print('Data Collected. Please see file DevicesStaticFirmwareAssignment' + timestr + ccmip + '.xml.')
-    with open(os.path.join(completepath, 'DevicesStaticFirmwareAssignment_' + timestr + '_' + ccmip + '.xml'), 'w+')\
+    print('Data Collected. Please see file DevicesStaticFirmwareAssignment' + timestr + cucmipaddr + '.xml.')
+    with open(os.path.join(completepath, 'DevicesStaticFirmwareAssignment_' + timestr + '_' + cucmipaddr + '.xml'), 'w+')\
             as file:
+        file.write(xml_pretty_str)
+
+
+# Menu Opt 2 > 5
+# Function to perform a request against UCM for Device Defaults data and stores response in xml file.
+def homeclustercheck(cucmipaddr, cucmversion, cucmpassword, cucmusername):
+    # URL to hit for request against axl
+    url = (axlurl + cucmipaddr + '/axl/')
+    # Payload to send; soap envelope
+    payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n  " \
+                                                                     "    <ns:executeSQLQuery sequence=\"\">\n        " \
+                                                                     " <sql>\n         SELECT eu.userid AS id, " \
+                                                                     "eu.firstname AS first, eu.lastname AS last, " \
+                                                                     "eu.islocaluser AS homecluster, ucp.name AS " \
+                                                                     "serviceprofile\n         FROM enduser AS eu\n   " \
+                                                                     "      INNER JOIN ucserviceprofile AS ucp ON " \
+                                                                     "ucp.pkid=eu.fkucserviceprofile WHERE " \
+                                                                     "eu.islocaluser='t'\n         </sql>\n      " \
+                                                                     "</ns:executeSQLQuery>\n   " \
+                                                                     "</soapenv:Body>\n</soapenv:Envelope> "
+    # Header content, define db version and execute an SQL Query
+    headers = {
+        'SOAPAction': 'CUCM:DB ver=' + cucmversion + ' executeSQLQuery',
+        'Content-Type': 'text/plain'
+    }
+    print()
+    print('Collecting Data...')
+    print()
+    # Here's where we send a POST message out to CUCM, we don't verify certificates.
+    response = requests.request("POST", url, headers=headers, data=payload, auth=(cucmusername, cucmpassword), verify=False)
+    uglyxml = response.text.encode('utf8')
+    xmldata = xml.dom.minidom.parseString(uglyxml)
+    xml_pretty_str = xmldata.toprettyxml()
+    print('Data Collected. Please see file HomeClusterReport' + timestr + cucmipaddr + '.xml.')
+    with open(os.path.join(completepath, 'HomeClusterReport_' + timestr + '_' + cucmipaddr + '.xml'), 'w+') as file:
         file.write(xml_pretty_str)
 
 
@@ -461,7 +508,7 @@ def get_devicenames(chunk_size=200):
 # Function to query UCM for device pool list and present to the user, in case they don't know. Returns selected DP.
 def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + version + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT name\n            FROM " \
               "devicepool\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
     headers = {
@@ -505,6 +552,7 @@ def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicep
     }
     print()
     print('Collecting Data...')
+    print()
     response = requests.request("POST", axlurl + cucmipaddr + '/axl/', headers=headers, data=payload,
                                 auth=(cucmusername, cucmpassword), verify=False)
     # We encode the text response from POST request as utf8 and pretty print it to a file
@@ -531,6 +579,7 @@ def ucmdbdip_all(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     }
     print()
     print('Collecting Data...')
+    print()
     response = requests.request("POST", axlurl + cucmipaddr + '/axl/', headers=headers, data=payload,
                                 auth=(cucmusername, cucmpassword), verify=False)
     # We encode the text response from POST request as utf8 and pretty print it to a file
