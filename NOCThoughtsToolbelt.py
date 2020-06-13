@@ -52,14 +52,14 @@ def menu():
 
     if choice == "1":
         phonemenuchoice = input("""
-                                1: Pull Cisco Phone Info
-                                2: Pull Cisco Phone Logs
-                                3: Pull Cisco Device Registration by Device Pool
-                                4: Pull Cisco Device Registration by File
-                                5: Pull Cisco Device Registration for All
-                                Q: Quit
+        1: Pull Cisco Phone Info
+        2: Pull Cisco Phone Logs
+        3: Pull Cisco Device Registration by Device Pool
+        4: Pull Cisco Device Registration by File
+        5: Pull Cisco Device Registration for All
+        Q: Quit
 
-                                Selection: """)
+        Selection: """)
         if phonemenuchoice == "1":
             serialnumpull()
             exit()
@@ -126,14 +126,14 @@ def menu():
             exit()
     elif choice == "2":
         ucmmenuchoice = input("""
-                                  1: Pull UCM Device Defaults
-                                  2: Pull UCM Phones Configured
-                                  3: Pull Jabber Last Login Time
-                                  4: Pull Devices w/ Static Firmware Assignment
-                                  5: Pull Home Cluster Report
-                                  Q: Quit
+        1: Pull UCM Device Defaults
+        2: Pull UCM Phones Configured
+        3: Pull Jabber Last Login Time
+        4: Pull Devices w/ Static Firmware Assignment
+        5: Pull Home Cluster Report
+        Q: Quit
 
-                                  Selection: """)
+       Selection: """)
         if ucmmenuchoice == "1":
             cucmipaddr, cucmversion, cucmpassword, cucmusername = infocollect()
             devicedefaultsfetch(cucmipaddr, cucmversion, cucmpassword, cucmusername)
