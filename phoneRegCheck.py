@@ -94,7 +94,7 @@ def infocollect():
 # Function to query UCM for device pool list and present to the user, in case they don't know. Returns selected DP.
 def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
     payload = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
+              "xmlns:ns=\"http://www.cisco.com/AXL/API/" + cucmversion + "\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      " \
               "<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT name\n            FROM " \
               "devicepool\n         </sql>\n      </ns:executeSQLQuery>\n   </soapenv:Body>\n</soapenv:Envelope> "
     headers = {
@@ -124,11 +124,12 @@ def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
 def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicepool):
     # Define payload specific to ucmdbdip for specified device pool.
     payload = '<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" ' \
-              'xmlns:ns=\"http://www.cisco.com/AXL/API/10.5\">\n   <soapenv:Header/>\n   <soapenv:Body>\n      ' \
+              'xmlns:ns=\"http://www.cisco.com/AXL/API/' + cucmversion + '\">\n   <soapenv:Header/>\n  ' \
+                                                                         ' <soapenv:Body>\n      ' \
               '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
               'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
               'dp.name ' \
-              'like \"' + cucmdevicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
+              'like \"' + cucmdevicepool + '\" order by d.name\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
                                            '</soapenv:Body>\n</soapenv:Envelope> '
     # Header content, define db version and execute an SQL Query
     headers = {
