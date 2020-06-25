@@ -539,7 +539,7 @@ def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicep
               '<ns:executeSQLQuery sequence=\"\">\n         <sql>\n            SELECT d.name \n            FROM ' \
               'device as d \n            INNER JOIN devicepool as dp ON dp.pkid=d.fkdevicepool \n            WHERE ' \
               'dp.name ' \
-              'like \"' + cucmdevicepool + '\"\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
+              'like \"' + cucmdevicepool + '\" order by d.name\n         </sql>\n      </ns:executeSQLQuery>\n   ' \
                                            '</soapenv:Body>\n</soapenv:Envelope> '
     # Header content, define db version and execute an SQL Query
     headers = {
