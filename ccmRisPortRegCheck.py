@@ -40,10 +40,11 @@ def inputfetch():
 
 
 # Script
-def regcheck(ccmip, ccmun, ccmpw, macs):
-    devtype = input("Are we looking for Phones or SIP Trunks? Don't mix. (phone|trunk): ")
+def regcheck(ccmip, ccmun, ccmpw):
+    devtype = input("Are we looking for Phones or SIP Trunks? If both, select trunk. (phone|trunk): ")
     if devtype == "phone":
         # Define WSDL location
+        macs = inputfetch()
         wsdl = 'https://' + ccmip + ':8443/realtimeservice2/services/RISService70?wsdl'
         session = Session()
         session.verify = False
@@ -67,7 +68,8 @@ def regcheck(ccmip, ccmun, ccmpw, macs):
                       "Description: " + device.Description, "Dir Number: " + device.DirNumber)
     elif devtype == "trunk":
         # Define WSDL location
-        wsdl = 'https://' + ccmip + ':8443/realtimeservice/services/RisPort?wsdl'
+        macs = inputfetch()
+        wsdl = 'https://' + ccmip + ':8443/realtimeservice2/services/RISService70?wsdl'
         session = Session()
         session.verify = False
         session.auth = HTTPBasicAuth(ccmun, ccmpw)
@@ -78,14 +80,15 @@ def regcheck(ccmip, ccmun, ccmpw, macs):
         item = []
         for mac in macs:
             item.append(factory.SelectItem(Item=mac))
-        devnames = factory.SelectItem(item)
+        devnames = factory.ArrayOfSelectItem(item)
         stateinfo = ''
-        criteria = factory.CmSelectionCriteriaSIP(
-            MaxReturnedDevices=1000, Class='Any', Model=255, Status='Any', SelectBy='Name',
-            SelectItems=devnames, NodeName='', Protocol='Any')
-        result = client.service.SelectCmDeviceSIP(stateinfo, criteria)
-        for node in result.SelectCmDeviceResultSIP.CmNodesSIP.item:
-            for device in node.CmDevicesSIP.item:
+        criteria = factory.CmSelectionCriteria(
+            MaxReturnedDevices=1000, DeviceClass='Any', Model=255, Status='Any', NodeName='', SelectBy='Name',
+            SelectItems=devnames, Protocol='Any', DownloadStatus='Any')
+        result = client.service.selectCmDevice(stateinfo, criteria)
+        for node in result.SelectCmDeviceResult.CmNodes.item:
+            for device in node.CmDevices.item:
+                print("SIP Trunks that appear multiple times due to assignment to multiple route groups or ")
                 print("Device Name: " + device.Name, "Status: " + device.Status,
                       "Description: " + device.Description)
     checkhistory = input("Do you want to check the SOAP Message History?(y/n): ")
@@ -97,5 +100,4 @@ def regcheck(ccmip, ccmun, ccmpw, macs):
 
 
 ccmip, ccmun, ccmpw = infocollect()
-macs = inputfetch()
-regcheck(ccmip, ccmun, ccmpw, macs)
+regcheck(ccmip, ccmun, ccmpw)
