@@ -29,7 +29,7 @@ def infocollect():
     return ipaddr, username, password
 
 
-# Function that constructs csv string to check against ucm from file input.
+# Function that takes device names from a text file, strips carriage return and adds device names to array
 def inputfetch():
     inputfile = input('What is the name of the input text file?: ')
     with open(inputfile) as txtfile:
@@ -39,11 +39,12 @@ def inputfetch():
     return lines
 
 
-# Script
+# Script to check against risport the status of specified phones. We check using different return parameters for
+# Phone and SIP Trunk as we cannot pull Dir Number.
 def regcheck(ccmip, ccmun, ccmpw):
     devtype = input("Are we looking for Phones or SIP Trunks? If both, select trunk. (phone|trunk): ")
     if devtype == "phone":
-        # Define WSDL location
+        # Define WSDL location at http url, we do not store it locally
         macs = inputfetch()
         wsdl = 'https://' + ccmip + ':8443/realtimeservice2/services/RISService70?wsdl'
         session = Session()
@@ -67,7 +68,7 @@ def regcheck(ccmip, ccmun, ccmpw):
                 print("Device Name: " + device.Name, "Status: " + device.Status,
                       "Description: " + device.Description, "Dir Number: " + device.DirNumber)
     elif devtype == "trunk":
-        # Define WSDL location
+        # Define WSDL location at http url, we do not store it locally
         macs = inputfetch()
         wsdl = 'https://' + ccmip + ':8443/realtimeservice2/services/RISService70?wsdl'
         session = Session()
