@@ -89,7 +89,8 @@ def regcheck(ccmip, ccmun, ccmpw):
         result = client.service.selectCmDevice(stateinfo, criteria)
         for node in result.SelectCmDeviceResult.CmNodes.item:
             for device in node.CmDevices.item:
-                print("SIP Trunks that appear multiple times due to assignment to multiple route groups or ")
+                print("SIP Trunks that appear multiple times due to assignment to multiple RG/RL will appear multiple"
+                      "times in the below output.")
                 print("Device Name: " + device.Name, "Status: " + device.Status,
                       "Description: " + device.Description)
     checkhistory = input("Do you want to check the SOAP Message History?(y/n): ")
