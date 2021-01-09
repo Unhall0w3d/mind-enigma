@@ -16,7 +16,7 @@ hostname = [
 
 # Define Variables required for file creation
 timestr = time.strftime("%Y%m%d-%H%M%S")
-dirname = 'tac2temp'
+dirname = 'temp'
 dir_path = os.getcwd()
 path = os.path.join(dir_path, dirname)
 
@@ -25,8 +25,12 @@ if os.path.exists(dirname) is False:
     os.mkdir(dirname)
 
 # Input Requirements taken from Env Variables
-username = os.environ['expwyun']
-password = os.environ['expwypw']
+try:
+    username = os.environ['expwyun']
+    password = os.environ['expwypw']
+except:
+    print('Unable to get env variables for Cisco Expressway')
+    sys.exit()
 
 # Command to execute
 command = "cat /proc/meminfo | grep Committed_AS"
