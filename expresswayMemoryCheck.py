@@ -29,7 +29,6 @@ try:
     username = os.environ['expwyun']
     password = os.environ['expwypw']
 except:
-    print('Unable to get env variables for Cisco Expressway')
     sys.exit()
 
 # Command to execute
