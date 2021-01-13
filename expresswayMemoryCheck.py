@@ -58,12 +58,10 @@ for ipaddr in hostname:
             rdr.write("+" * 10 + ipaddr + "+" * 10 + '\n')
             rdr.write("=" * 10 + command + "=" * 10 + '\n')
             rdr.write(stdout.read().decode() + '\n')
-            rdr.write('\n')
             if err:
                 # print(err)
-                rdr.write(stderr.read().decode())
+                rdr.write(stderr.read().decode() + '\n')
     except:
         # print("[!] Cannot connect to the Expressway Server " + ipaddr + ". Please manually verify access.")
         with open(os.path.join(path, 'ExpresswayHC' + timestr + '.txt'), 'a+') as rdr:
-            rdr.write("[!] Cannot connect to the Expressway Server " + ipaddr + ". Please manually verify access.")
-            rdr.write('\n')
+            rdr.write("[!] Cannot connect to the Expressway Server " + ipaddr + ". Please manually verify access." + '\n')
