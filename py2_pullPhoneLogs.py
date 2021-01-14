@@ -2,7 +2,8 @@
 import requests
 import subprocess
 
-# Collect device count and IPs from user input
+# Collect IPs from user input based on how many phones we want to check
+
 
 def phonecollection():
     num_phones = int(raw_input('How many phones?: '))
@@ -14,8 +15,8 @@ def phonecollection():
         ips.append(raw_input('What is the phone IP address?: '))
     return ips
 
-
 # Log collection function that runs wget against consolelog url to pull recursively.
+
 
 def logcollect(ip_addr):
     destfolder = str('~/')
@@ -43,6 +44,9 @@ def logcollect(ip_addr):
             print('The script failed. Contact script dev with details from your attempt and failure.')
             print(e)
 
+# Run script by collecting the output of function phonecollection()
+# Then, perform the loccollect() function against each ip address in the array returned by phonecollection()
+# Print where the files are and quit
 
 
 ips = phonecollection()
