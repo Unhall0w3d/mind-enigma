@@ -27,7 +27,7 @@ tarname = 'ExpresswayHC' + timestr + '.tar.gz'
 if os.path.exists(dirname) is False:
     os.mkdir(dirname)
 
-# Input Requirements taken from Env Variables
+# Input Requirements taken from user inputs
 username = input("Username: ")
 password = getpass("Password: ")
 
