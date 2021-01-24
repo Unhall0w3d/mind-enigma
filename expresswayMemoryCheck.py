@@ -70,7 +70,7 @@ def healthcheck(filename, hostname):
 
 
 def filehandling(filename, tarname):
-    os.system('tar jcvf ' + tarname + ' ' + tarname)
+    os.system('tar jcvf ' + tarname + ' ' + filename)
     os.system('rm ' + filename)
     os.system('mv ' + tarname + ' ' + path)
 
