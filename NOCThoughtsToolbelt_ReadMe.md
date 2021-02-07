@@ -1,18 +1,20 @@
+```
 #####################################
 # Script created by Ken Perry, 2020 #
 #       NOC THOUGHTS BLOG           #
 #    https://www.nocthoughts.com    #
 #####################################
-Code guidance, testing, sample and other contributions by Mark Barba, Juliana Xu, Cole Aten, Robert Phillips.
+```
 
-Main Menu:
+# Main Menu
+```
 1: Cisco Phone Requests
 	Leads to Option 1 Menu
 2: Cisco UCM Requests
 	Leads to Option 2 Menu
 3: Unimplemented
 	Option not yet implemented
-
+	
 Option 1 Menu:
 1: Pull Cisco Phone Info
 	Useful when checking for registration state on Cisco Phones (only) by IP, or collecting Serial Numbers for SmartNet True-up.
@@ -48,22 +50,26 @@ Option 2 Menu:
 	Pulls a report (xml) from UCM for all phones that have a static Phone Load configured.
 5: Pull Home Cluster Report
 	Pulls a report (xml) from UCM for all users that have Home Cluster enabled. Returns userid, home cluster enabled (islocaluser=t) and service profile assigned.
+```
 
-Input Method(s):
+# Input Methods
+
 All file input methods require a .txt file in which the device ips, or device names are provided ONE PER LINE.
 The script takes each line in the file, removes carriage return, and adds each line to a list to be executed against.
 
-Required Modules:
-subprocess, time, xml.etree.ElementTree, io -> BytesIO, os, pycurl, requests, urllib3, xml.dom.minidom, getpass
+# Device Coverage for Reg Check/log pull (Confirmed Working)
 
-Device Coverage for Reg Check/log pull (Confirmed Working)
+```
 Cisco IP Communicator
 Cisco 6901, 7832, 7936, 7937, 7940, 7841, 7945, 7961, 7962, 7965, 7970,
 8811, 8821, 8831, 8841, 8851, 8861, 8865, 9951, 9971
 Cisco DX650
 Cisco ATA187
+```
 
-Caveats (Cisco 7937):
+# Caveats
+```(Cisco 7937)```
+
 Devices such as the Cisco 7937 do not contain a serialNumber tag/attribute on the /DeviceInformationX page.
 It is thus reported as "n/a".
 For these instances it is recommended to verify the data manually.
