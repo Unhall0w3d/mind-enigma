@@ -6,9 +6,14 @@ import requests
 import urllib3
 from getpass import getpass
 
-ipaddr = input("What is the CCM Pub IP? : ")
-username = input("What is the username? : ")
-password = getpass("What is the password? : ")
+# Define disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def infocollect():
+    ipaddr = str(raw_input("What is the CCM Pub IP? : "))
+    username = str(raw_input("What is the username? : "))
+    password = str(getpass("What is the password? : "))
+    return ipaddr, username, password
 
 
 def datapull(ipaddr, username, password):
@@ -21,9 +26,13 @@ def datapull(ipaddr, username, password):
     }
 
     response = requests.request("POST", url, headers=headers, data=payload, auth=(username, password), verify=False)
-    fileoutput = response.decode( ' utf-8 ' )
-    with open( 'CiscoSyslog.txt ' ) as file:
+    fileoutput = response.text.encode( ' utf-8 ' )
+    with open( 'CiscoSyslog.txt ', "w" ) as file:
         file.write(fileoutput)
+
+
+ipaddr, username, password = infocollect()
+datapull(ipaddr, username, password)
 
 print(" The Cisco Syslog file should be in the same Dir as the script. Good luck! ")
 
