@@ -8,6 +8,7 @@ from getpass import getpass
 import os
 import time
 import requests
+from requests.auth import HTTPBasicAuth
 import urllib3
 import re
 import xml.etree.ElementTree as ET
@@ -52,7 +53,7 @@ def listucm():
     try:
         ucnodes = []
         url = "https://" + ipaddr + ":8443/ast/ASTIsapi.dll?GetPreCannedInfo&Items=getCtiManagerInfoRequest"
-        response = requests.request("POST", url, auth=(username, password), verify=False, timeout=10)
+        response = requests.request("POST", url, auth=HTTPBAsicAuth(username, password), verify=False, timeout=10)
         if response.status_code != 200:
             print("Error! Failed to collect subscriber details. Check your credentials and reachability. Ensure the "
                   "proper services are started.")
@@ -83,7 +84,7 @@ def datapull():
     }
     for ccmip in ucnodes:
         url = "https://" + ccmip + ":8443/logcollectionservice/services/DimeGetFileService"
-        response = requests.request("POST", url, headers=headers, data=payload, auth=(username, password), verify=False, timeout=10)
+        response = requests.request("POST", url, headers=headers, data=payload, auth=HTTPBasicAuth(username, password), verify=False, timeout=10)
         with open(os.path.join(syslogpath, 'CiscoSyslog.txt'), 'a+') as file:
             file.write(response.text)
     file.close()
