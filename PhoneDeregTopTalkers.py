@@ -94,14 +94,14 @@ def parselogs():
     index = 0
     with open(os.path.join(syslogpath, 'CiscoSyslog.txt'), 'r') as file:
         for line in file:
-            qualifier = 'DeviceUnregistered'
+            qualifier1 = 'DeviceUnregistered'
             disqualifier = 'SyslogSeverityMatchFound'
             stepone = re.sub(r'[%\]]', "", line)
             steptwo = re.sub(r'\[', "^", stepone)
             stepthree = steptwo.split("^")
-            if qualifier and disqualifier in line:
+            if qualifier1 and disqualifier in line:
                 index += 1
-            elif qualifier in line:
+            elif qualifier1 in line:
                 data = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[5] + ',' + stepthree[6] + ',' + stepthree[12])
                 if data in report:
                     report[data] += 1
@@ -112,7 +112,7 @@ def parselogs():
             for info, count in sorted(report.items(), key=lambda x: x[1], reverse=True):
                 results.write('%s,%s\n' % (count, info))
         results.close()
-    file.close()
+        file.close()
 
 
 try:
