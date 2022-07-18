@@ -10,12 +10,12 @@ import time
 import requests
 from requests.auth import HTTPBasicAuth
 import re
+import urllib3
 import paramiko
-import warnings
 
 
-# Warning Disablement
-warnings.filterwarnings(action='ignore',module='.*paramiko.*')
+# Disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # DateTime String
 timestr = time.strftime("%Y%m%d-%H%M%S")
 # Directory and File Vars
@@ -41,11 +41,11 @@ def setup():
 
 # Collect IP Address, Username and Password for CCM Publisher
 def infocollect():
-    ip = str(input("What is the CCM Pub IP? : "))
-    ungui = str(input("What is the GUI username? : "))
-    pwgui = getpass("What is the GUI password? : ")
-    unos = str(input("What is the OS username? : "))
-    pwos = getpass("What is the OS password? : ")
+    ipaddr = str(input("What is the CCM Pub IP? : "))
+    username = str(input("What is the GUI username? : "))
+    password = getpass("What is the GUI password? : ")
+    usernameos = str(input("What is the OS username? : "))
+    passwordos = getpass("What is the OS password? : ")
     return ipaddr, username, password, usernameos, passwordos
 
 
@@ -67,7 +67,7 @@ def receivestr(sshconn, cmd):
 def listucm():
     _sshconn = paramiko.SSHClient()
     _sshconn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    srvlist = []
+    ucnodes = []
     try:
         _sshconn.connect(hostname=ipaddr, port=22, username=usernameos, password=passwordos, timeout=300,
                          banner_timeout=300)
@@ -81,10 +81,10 @@ def listucm():
         for node in networkinfo:
             if 'callmanager' in node and re.search(regexip, node):
                 iplist = re.search(regexip, node)
-                if iplist not in srvlist:
-                    srvlist.append(iplist.group(0))
+                if iplist not in ucnodes:
+                    ucnodes.append(iplist.group(0))
         _sshconn.close()
-        return srvlist
+        return ucnodes
     except Exception as z:
         print('Error: Failed to establish connection to UCM Publisher via SSH', z)
         _sshconn.close()
@@ -104,8 +104,7 @@ def datapull():
     }
     for ccmip in ucnodes:
         url = "https://" + ccmip + ":8443/logcollectionservice/services/DimeGetFileService"
-        response = requests.request("POST", url, headers=headers, data=payload,
-                                    auth=HTTPBasicAuth(username, password), verify=False, timeout=10)
+        response = requests.request("POST", url, headers=headers, data=payload, auth=HTTPBasicAuth(username, password), verify=False, timeout=10)
         with open(os.path.join(syslogpath, 'CiscoSyslog.txt'), 'a+') as file:
             file.write(response.text)
             response.close()
@@ -131,22 +130,19 @@ def parselogs():
                     index += 1
                 elif qualifier in line:
                     if qualifier is searchlist[0]:
-                        unregdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[5]
-                                     + ',' + stepthree[6] + ',' + stepthree[12])
+                        unregdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[5] + ',' + stepthree[6] + ',' + stepthree[12])
                         if unregdata in unregreport:
                             unregreport[unregdata] += 1
                         elif unregdata not in unregreport:
                             unregreport[unregdata] = 1
                     elif qualifier is searchlist[1]:
-                        endpointdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[6]
-                                        + ',' + stepthree[7] + ',' + stepthree[15])
+                        endpointdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[6] + ',' + stepthree[7] + ',' + stepthree[15])
                         if endpointdata in endpointreport:
                             endpointreport[endpointdata] += 1
                         elif endpointdata not in endpointreport:
                             endpointreport[endpointdata] = 1
                     elif qualifier is searchlist[2]:
-                        tranconndata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[5]
-                                        + ',' + stepthree[6] + ',' + stepthree[10])
+                        tranconndata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[5] + ',' + stepthree[6] + ',' + stepthree[10])
                         if tranconndata in tranconnreport:
                             tranconnreport[tranconndata] += 1
                         elif tranconndata not in tranconnreport:
@@ -164,35 +160,31 @@ def parselogs():
 def createreport():
     with open(os.path.join(toptalkerspath, 'DeregTopTalkers_' + timestr + '.csv'), "w+") as results:
         results.write("Device Unregistered\n")
-        results.write("-------------------------------------------------------")
+        results.write("-------------------------------------------------------\n")
         results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
-        for info1, count1 in sorted(unregparsed.items(), key=lambda x: x[1], reverse=True):
-            if count1 > 2:
-                results.write('%s,%s' % (count1, info1))
+        for info1, count1 in sorted(unregreport.items(), key=lambda x: x[1], reverse=True):
+            results.write('%s,%s' % (count1, info1))
         results.write("------")
         results.write('\n\n\n')
         results.write("Endpoint Unregistered\n")
-        results.write("-------------------------------------------------------")
+        results.write("-------------------------------------------------------\n")
         results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
-        for info2, count2 in sorted(endpointparsed.items(), key=lambda x: x[1], reverse=True):
-            if count2 > 2:
-                results.write('%s,%s' % (count2, info2))
+        for info2, count2 in sorted(endpointreport.items(), key=lambda x: x[1], reverse=True):
+            results.write('%s,%s' % (count2, info2))
         results.write("------")
         results.write('\n\n\n')
         results.write("Transient Connections\n")
-        results.write("-------------------------------------------------------")
+        results.write("-------------------------------------------------------\n")
         results.write("Count,SourcePort,DeviceName,IPAddress,ReasonCode,Protocol,NodeID_InfoText\n")
-        for info3, count3 in sorted(tranconnparsed.items(), key=lambda x: x[1], reverse=True):
-            if count3 > 2:
-                results.write('%s,%s' % (count3, info3))
+        for info3, count3 in sorted(tranconnreport.items(), key=lambda x: x[1], reverse=True):
+            results.write('%s,%s' % (count3, info3))
         results.write("------")
         results.write('\n\n\n')
         results.write("SIP Trunk Out of Service\n")
-        results.write("-------------------------------------------------------")
+        results.write("-------------------------------------------------------\n")
         results.write("Count,DeviceName,PeerIP_ReasonCode,NodeID_InfoText\n")
-        for info4, count4 in sorted(siptrunkparsed.items(), key=lambda x: x[1], reverse=True):
-            if count4 > 2:
-                results.write('%s,%s' % (count4, info4))
+        for info4, count4 in sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True):
+            results.write('%s,%s' % (count4, info4))
         results.close()
 
 
@@ -205,10 +197,11 @@ try:
     datapull()
     print("Beginning Syslog Parse for Device Deregistration events.")
     time.sleep(1)
+    unregreport, tranconnreport, siptrunkreport, endpointreport = parselogs()
     print("Constructing top talkers report in .csv format.")
     time.sleep(1)
+    createreport()
     print("-------------------------------------------------------")
-    unregparsed, tranconnparsed, siptrunkparsed, endpointparsed = parselogs()
     print("Top talkers report is available in " + toptalkerspath + ".")
     print("-------------------------------------------------------")
     print("Cleaning up")
