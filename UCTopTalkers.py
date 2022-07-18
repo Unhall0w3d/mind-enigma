@@ -11,15 +11,13 @@ import requests
 from requests.auth import HTTPBasicAuth
 import urllib3
 import re
-import xml.etree.ElementTree as ET
 import paramiko
+import warnings
+from cryptography.utils import CryptographyDeprecationWarning
+with warnings.catch_warnings():
+    warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
 
-
-# Define disablement of HTTPS Insecure Request error message.
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-# Define Variables for File Creation
-# Time
+# DateTime String
 timestr = time.strftime("%Y%m%d-%H%M%S")
 # Directory and File Vars
 syslogstore = 'CiscoSyslogs'
@@ -29,7 +27,7 @@ syslogpath = os.path.join(dir_path, syslogstore)
 toptalkerspath = os.path.join(dir_path, toptalkersstore)
 
 
-# Check if required directories exist. If not, create them.
+# Check if required directories exist and create if needed
 def setup():
     print("Checking if required directories exist, if not, creating them.")
     syslogpathcheck = os.path.exists(syslogpath)
@@ -42,7 +40,7 @@ def setup():
         print("Creating folder TopTalkersReports in " + dir_path)
 
 
-# Function to collect IP Address, Username and Password for CCM Publisher
+# Collect IP Address, Username and Password for CCM Publisher
 def infocollect():
     ip = str(input("What is the CCM Pub IP? : "))
     ungui = str(input("What is the GUI username? : "))
@@ -52,6 +50,7 @@ def infocollect():
     return ipaddr, username, password, usernameos, passwordos
 
 
+# Processing command input, needed in listucm()
 def receivestr(sshconn, cmd):
     buffer = ''
     prompt = 'admin:'
@@ -65,6 +64,7 @@ def receivestr(sshconn, cmd):
     return buffer
 
 
+# Connect to UCM Pub on port 22|Collect output from show network cluster to construct ip list for log download
 def listucm():
     _sshconn = paramiko.SSHClient()
     _sshconn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -91,7 +91,7 @@ def listucm():
         _sshconn.close()
 
 
-# Function to perform SOAP request against CCM log collection service on port 8443.
+# Perform SOAP request against CCM log collection service on port 8443 for each IP in list
 def datapull():
     payload = "<soapenv:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " \
               "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " \
@@ -113,6 +113,7 @@ def datapull():
     file.close()
 
 
+# Parse downloaded CiscoSyslog file for strings and generate report.
 def parselogs():
     unregreport = {}
     tranconnreport = {}
@@ -157,32 +158,43 @@ def parselogs():
                             siptrunkreport[siptrunkdata] += 1
                         elif siptrunkdata not in siptrunkreport:
                             siptrunkreport[siptrunkdata] = 1
-        with open(os.path.join(toptalkerspath, 'DeregTopTalkers_' + timestr + '.csv'), "w+") as results:
-            results.write("Device Unregistered\n")
-            results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
-            for info1, count1 in sorted(unregreport.items(), key=lambda x: x[1], reverse=True):
-                if count1 > 2:
-                    results.write('%s,%s' % (count1, info1))
-            results.write('\n\n\n')
-            results.write("Endpoint Unregistered\n")
-            results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
-            for info2, count2 in sorted(unregreport.items(), key=lambda x: x[1], reverse=True):
-                if count2 > 2:
-                    results.write('%s,%s' % (count1, info1))
-            results.write('\n\n\n')
-            results.write("Transient Connections\n")
-            results.write("Count,SourcePort,DeviceName,IPAddress,ReasonCode,Protocol,NodeID_InfoText\n")
-            for info3, count3 in sorted(tranconnreport.items(), key=lambda x: x[1], reverse=True):
-                if count3 > 5:
-                    results.write('%s,%s' % (count3, info3))
-            results.write('\n\n\n')
-            results.write("SIP Trunk Out of Service\n")
-            results.write("Count,DeviceName,PeerIP_ReasonCode,NodeID_InfoText\n")
-            for info4, count4 in sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True):
-                if count4 > 3:
-                    results.write('%s,%s' % (count4, info4))
-            results.close()
         file.close()
+    return unregreport, tranconnreport, siptrunkreport, endpointreport
+
+
+def createreport():
+    with open(os.path.join(toptalkerspath, 'DeregTopTalkers_' + timestr + '.csv'), "w+") as results:
+        results.write("Device Unregistered\n")
+        results.write("-------------------------------------------------------")
+        results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
+        for info1, count1 in sorted(unregparsed.items(), key=lambda x: x[1], reverse=True):
+            if count1 > 2:
+                results.write('%s,%s' % (count1, info1))
+        results.write("------")
+        results.write('\n\n\n')
+        results.write("Endpoint Unregistered\n")
+        results.write("-------------------------------------------------------")
+        results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
+        for info2, count2 in sorted(endpointparsed.items(), key=lambda x: x[1], reverse=True):
+            if count2 > 2:
+                results.write('%s,%s' % (count2, info2))
+        results.write("------")
+        results.write('\n\n\n')
+        results.write("Transient Connections\n")
+        results.write("-------------------------------------------------------")
+        results.write("Count,SourcePort,DeviceName,IPAddress,ReasonCode,Protocol,NodeID_InfoText\n")
+        for info3, count3 in sorted(tranconnparsed.items(), key=lambda x: x[1], reverse=True):
+            if count3 > 2:
+                results.write('%s,%s' % (count3, info3))
+        results.write("------")
+        results.write('\n\n\n')
+        results.write("SIP Trunk Out of Service\n")
+        results.write("-------------------------------------------------------")
+        results.write("Count,DeviceName,PeerIP_ReasonCode,NodeID_InfoText\n")
+        for info4, count4 in sorted(siptrunkparsed.items(), key=lambda x: x[1], reverse=True):
+            if count4 > 2:
+                results.write('%s,%s' % (count4, info4))
+        results.close()
 
 
 try:
@@ -197,7 +209,7 @@ try:
     print("Constructing top talkers report in .csv format.")
     time.sleep(1)
     print("-------------------------------------------------------")
-    parselogs()
+    unregparsed, tranconnparsed, siptrunkparsed, endpointparsed = parselogs()
     print("Top talkers report is available in " + toptalkerspath + ".")
     print("-------------------------------------------------------")
     print("Cleaning up")
