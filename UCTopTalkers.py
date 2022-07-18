@@ -9,14 +9,13 @@ import os
 import time
 import requests
 from requests.auth import HTTPBasicAuth
-import urllib3
 import re
 import paramiko
 import warnings
-from cryptography.utils import CryptographyDeprecationWarning
-with warnings.catch_warnings():
-    warnings.filterwarnings('ignore', category=CryptographyDeprecationWarning)
 
+
+# Warning Disablement
+warnings.filterwarnings(action='ignore',module='.*paramiko.*')
 # DateTime String
 timestr = time.strftime("%Y%m%d-%H%M%S")
 # Directory and File Vars
