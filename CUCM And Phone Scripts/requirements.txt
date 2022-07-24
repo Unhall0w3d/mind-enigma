@@ -1,4 +1,4 @@
 lxml==4.9.1
-requests==2.25.1
-urllib3==1.26.5
-zeep==4.0.0
+requests==2.28.1
+urllib3==1.26.10
+zeep==4.1.0

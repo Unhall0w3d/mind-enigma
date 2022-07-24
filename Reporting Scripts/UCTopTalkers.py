@@ -2,23 +2,28 @@
 # Test Script for Parsing Syslogs for Dereg Event Top Talkers
 # Script written by Kenneth Perry @ NOC Thoughts
 ####
-
 # Required Modules
-from getpass import getpass
-import os
-import time
-import requests
-from requests.auth import HTTPBasicAuth
-import re
-import urllib3
-import paramiko
 import itertools
+import os
+import re
 import shutil
+import time
+
+from getpass import getpass
+from logging import exception
+
+import paramiko
+import requests
+import urllib3
+from requests.auth import HTTPBasicAuth
 
 # Disablement of HTTPS Insecure Request error message.
+# noinspection PyUnresolvedReferences
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # DateTime String
 timestr = time.strftime("%Y%m%d-%H%M%S")
+# Exit text
+infoexit = "Info: Exiting ... "
 # Directory and File Vars
 syslogstore = 'CiscoSyslogs'
 toptalkersstore = 'TopTalkersReports'
@@ -82,10 +87,10 @@ def netrequests():
     try:
         _sshconn.connect(hostname=ipaddr, port=22, username=usernameos, password=passwordos, timeout=300,
                          banner_timeout=300)
-        __sshConn = _sshconn.invoke_shell()
-        receivestr(__sshConn, '')
+        invokeshell = _sshconn.invoke_shell()
+        receivestr(invokeshell, '')
         print('Info: Connected to Publisher ... ')
-        buffer = receivestr(__sshConn, 'show network cluster\n')
+        buffer = receivestr(invokeshell, 'show network cluster\n')
         networkinfo = buffer.split('\r\n')
         regexip = re.compile('((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|['
                              '1-9]?[0-9])')
@@ -102,10 +107,10 @@ def netrequests():
             url = "https://" + ip + ":8443/logcollectionservice/services/DimeGetFileService"
             _sshconn.connect(hostname=ip, port=22, username=usernameos, password=passwordos,
                              timeout=300, banner_timeout=300)
-            __sshConn = _sshconn.invoke_shell()
-            receivestr(__sshConn, '')
+            invokeshell = _sshconn.invoke_shell()
+            receivestr(invokeshell, '')
             print('Info: Connected to ' + ip + ' ... ')
-            buffer2 = receivestr(__sshConn, 'file list activelog /syslog/ detail \n')
+            buffer2 = receivestr(invokeshell, 'file list activelog /syslog/ detail \n')
             output = buffer2.split('\r\n')
             searchterm = re.compile('.*Syslo.*')
             for line in output:
@@ -148,6 +153,7 @@ def parselogs():
     regexlist1 = ['DeviceName=', 'Description=', 'IPAddress=', 'Reason=', 'Protocol=', 'NodeID=']
     regexlist2 = ['DeviceName=', 'IPAddress=', 'MACAddress=', 'Reason=', 'Protocol=', 'NodeID=']
     regexlist3 = ['DeviceName=', 'UnavailableRemotePeersWithReasonCode=', 'NodeID=']
+    found = '.*?\]'
     print('Info: Loading files for parsing ... ')
     for syslg in os.listdir(downloaddir):
         with open(os.path.join(downloaddir, syslg), 'r', encoding='utf-8') as logfile:
@@ -158,47 +164,47 @@ def parselogs():
                 siptrunklist = []
                 if disqualifier in line:
                     continue
-                for qualifier in searchlist:
-                    qualpattern = re.compile(r'{}'.format(qualifier))
-                    qualresult = qualpattern.search(line)
-                    if qualresult is None:
+                for search in searchlist:
+                    searchpattern = re.compile(r'{}'.format(search))
+                    searchresult = searchpattern.search(line)
+                    if searchresult is None:
                         continue
-                    elif qualresult is not None:
-                        if qualresult.group(0) == searchlist[0]:
-                            for term in regexlist1:
-                                regex = term + '.*?\]'
+                    elif searchresult is not None:
+                        if searchresult.group(0) == searchlist[0]:
+                            for prefix in regexlist1:
+                                regex = prefix + found
                                 pattern = re.compile(r'{}'.format(regex))
                                 result = pattern.search(line)
                                 if result is not None:
                                     devicelist.append(result.group(0).strip(']'))
                                 elif result is None:
-                                    devicelist.append(term + "None")
+                                    devicelist.append(prefix + "None")
                             devicedata = (','.join(devicelist))
                             if devicedata in unregreport:
                                 unregreport[devicedata] += 1
                             elif devicedata not in unregreport:
                                 unregreport[devicedata] = 1
-                        if qualresult.group(0) == searchlist[1]:
-                            for term in regexlist1:
-                                regex = term + '.*?\]'
+                        if searchresult.group(0) == searchlist[1]:
+                            for prefix in regexlist1:
+                                regex = prefix + found
                                 pattern = re.compile(r'{}'.format(regex))
                                 result = pattern.search(line)
                                 if result is not None:
                                     endpointlist.append(result.group(0).strip(']'))
                                 elif result is None:
-                                    endpointlist.append(term + "None")
+                                    endpointlist.append(prefix + "None")
                             endpointdata = (','.join(endpointlist))
                             if endpointdata in endpointreport:
                                 endpointreport[endpointdata] += 1
                             elif endpointdata not in endpointreport:
                                 endpointreport[endpointdata] = 1
-                        if qualresult.group(0) == searchlist[2]:
-                            for term in regexlist2:
-                                regex = term + '.*?\]'
+                        if searchresult.group(0) == searchlist[2]:
+                            for prefix in regexlist2:
+                                regex = prefix + found
                                 pattern = re.compile(r'{}'.format(regex))
                                 result = pattern.search(line)
                                 if result is None:
-                                    tranconnlist.append(term + "None")
+                                    tranconnlist.append(prefix + "None")
                                 elif result is not None:
                                     tranconnlist.append(result.group(0).strip(']'))
                             tranconndata = (','.join(tranconnlist))
@@ -206,13 +212,13 @@ def parselogs():
                                 tranconnreport[tranconndata] += 1
                             elif tranconndata not in tranconnreport:
                                 tranconnreport[tranconndata] = 1
-                        if qualresult.group(0) == searchlist[3]:
-                            for term in regexlist3:
-                                regex = term + '.*?\]'
+                        if searchresult.group(0) == searchlist[3]:
+                            for prefix in regexlist3:
+                                regex = prefix + found
                                 pattern = re.compile(r'{}'.format(regex))
                                 result = pattern.search(line)
                                 if result is None:
-                                    siptrunklist.append(term + "None")
+                                    siptrunklist.append(prefix + "None")
                                 elif result is not None:
                                     commas = result.group(0).replace(',' , '')
                                     siptrunklist.append(commas.strip('\]'))
@@ -221,6 +227,7 @@ def parselogs():
                                 siptrunkreport[siptrunkdata] += 1
                             elif siptrunkdata not in siptrunkreport:
                                 siptrunkreport[siptrunkdata] = 1
+            logfile.close()
     return unregreport, tranconnreport, siptrunkreport, endpointreport
 
 
@@ -264,17 +271,18 @@ def createreport():
             topresults.write(placer % (count4, info4))
         topresults.close()
     print("Info: Top talkers report (top 10) is available in " + toptalkerspath + ".")
-    fullreport = input("Collect: Do you want the full report? (Y\\n): ").lower() or "42"
     while True:
         try:
+            fullreport = input("Collect: Do you want the full report? (Y\\n): ").lower()
             if fullreport == "n":
-                print("Info: Exiting ... ")
+                print(infoexit)
                 exit()
-            elif fullreport == "y" or "42":
+            elif fullreport == "y":
                 break
-            else:
-                print("Info: Please input Y or N. Press Enter for the default.")
+            elif fullreport != "n" or "y":
+                raise exception("Invalid Key")
         except Exception:
+            print("Info: Please input Y or N. Press Enter for the default.")
             continue
     print("Info: Constructing Full report ... ")
     with open(os.path.join(toptalkerspath, 'FullReport_' + timestr + '.csv'), 'w+', encoding='utf-8') as results:
@@ -304,26 +312,27 @@ def createreport():
         results.write("Count,DeviceName,PeerIP_Port_Reason,NodeID\n")
         for info4, count4 in sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True):
             results.write(placer % (count4, info4))
-    results.close()
+        results.close()
     print("Info: Full report is available in " + toptalkerspath + ".")
 
 
 def cleanup():
-    cleanup = input("Collect: Delete downloaded log files? (Y\\n): ").lower() or "42"
     while True:
         try:
+            cleanup = input("Collect: Delete downloaded log files? (Y\\n): ").lower()
             if cleanup == "n":
-                print("Info: Exiting ... ")
+                print(infoexit)
                 exit()
-            elif cleanup == "y" or "42":
+            elif cleanup == "y":
                 shutil.rmtree(downloaddir)
                 break
-            else:
+            elif cleanup != "n" or "y":
                 print("Info: Please input Y or N. Press Enter for the default.")
+                raise exception("Unexpected Key")
         except OSError as c:
             print("Error: %s : %s" % (downloaddir, c.strerror))
             print("Error: File cleanup requires write and execute permissions on directory " + downloaddir + ".")
-            print("Info: Exiting ... ")
+            print(infoexit)
             exit()
         except Exception:
             continue
