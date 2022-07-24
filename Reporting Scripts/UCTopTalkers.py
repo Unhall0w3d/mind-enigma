@@ -1,7 +1,11 @@
-####
-# Test Script for Parsing Syslogs for Dereg Event Top Talkers
-# Script written by Kenneth Perry @ NOC Thoughts
-####
+#!/usr/var/python
+# -*- code:UTF-8 -*-
+
+#####################################
+# Script created by Ken Perry, 2020 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
 # Required Modules
 import itertools
 import os
@@ -61,7 +65,7 @@ def infocollect():
     return ipaddr, username, password, usernameos, passwordos
 
 
-# Processing command input, needed in listucm()
+# Processing command input, needed in netrequests()
 def receivestr(sshconn, cmd):
     buffer = ''
     prompt = 'admin:'
@@ -76,6 +80,7 @@ def receivestr(sshconn, cmd):
 
 
 # Connect to UCM Pub on port 22|Collect output from show network cluster to construct ip list for log download
+# Connect to each ip and download identified logs
 def netrequests():
     _sshconn = paramiko.SSHClient()
     _sshconn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -142,7 +147,8 @@ def netrequests():
         _sshconn.close()
 
 
-# Parse downloaded CiscoSyslog file for strings and generate report.
+# Parse downloaded CiscoSyslog|AlternateSyslog files for specific syslog types and generate report.
+# When found, grab relevant data and create dictionaries for report creation
 def parselogs():
     unregreport = {}
     endpointreport = {}
@@ -231,6 +237,8 @@ def parselogs():
     return unregreport, tranconnreport, siptrunkreport, endpointreport
 
 
+# Create TopTalkers report by default with top 10 chatty syslogs
+# Prompt user to create full report not filtered by top 10.
 def createreport():
     bigseparator = "-------------------------------------------------------\n"
     smallseparator = "------\n"
@@ -316,6 +324,7 @@ def createreport():
     print("Info: Full report is available in " + toptalkerspath + ".")
 
 
+# Prompt user to perform cleanup by deleting the date-time named folder in CiscoSyslogs\, optional
 def cleanup():
     while True:
         try:
