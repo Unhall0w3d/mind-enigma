@@ -143,7 +143,7 @@ def netrequests():
                     file.close()
         print('Info: Syslogs downloaded to ' + downloaddir)
     except Exception as z:
-        print('Error: Failed to establish connection to UCM Publisher via SSH', z)
+        print('Error: Failed to establish connection to UCM Server: ', z)
         _sshconn.close()
 
 
