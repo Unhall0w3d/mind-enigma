@@ -12,7 +12,8 @@ from requests.auth import HTTPBasicAuth
 import re
 import urllib3
 import paramiko
-
+import itertools
+import shutil
 
 # Disablement of HTTPS Insecure Request error message.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -21,31 +22,37 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Directory and File Vars
 syslogstore = 'CiscoSyslogs'
 toptalkersstore = 'TopTalkersReports'
+datetime = (timestr + '\\')
 dir_path = os.getcwd()
 syslogpath = os.path.join(dir_path, syslogstore)
+downloaddir = os.path.join(syslogpath, datetime)
 toptalkerspath = os.path.join(dir_path, toptalkersstore)
 
 
 # Check if required directories exist and create if needed
 def setup():
-    print("Checking if required directories exist, if not, creating them.")
+    print("Info: Checking if required directories exist, if not, creating them.")
     syslogpathcheck = os.path.exists(syslogpath)
     toptalkerspathcheck = os.path.exists(toptalkerspath)
+    downloaddirpathcheck = os.path.exists(downloaddir)
     if not syslogpathcheck:
         os.makedirs(syslogpath)
-        print("Creating folder CiscoSyslogs in " + dir_path)
+        print("Info: Creating folder CiscoSyslogs in " + dir_path)
+    if not downloaddirpathcheck:
+        os.makedirs(downloaddir)
+        print("Info: Creating folder " + datetime + " in " + syslogpath)
     if not toptalkerspathcheck:
         os.makedirs(toptalkerspath)
-        print("Creating folder TopTalkersReports in " + dir_path)
+        print("Info: Creating folder TopTalkersReports in " + dir_path)
 
 
 # Collect IP Address, Username and Password for CCM Publisher
 def infocollect():
-    ipaddr = str(input("What is the CCM Pub IP? : "))
-    username = str(input("What is the GUI username? : "))
-    password = getpass("What is the GUI password? : ")
-    usernameos = str(input("What is the OS username? : "))
-    passwordos = getpass("What is the OS password? : ")
+    ipaddr = str(input("Collect: CCM Pub IP? : "))
+    username = str(input("Collect: GUI Username? : "))
+    password = getpass("Collect: GUI Password? : ")
+    usernameos = str(input("Collect: OS Username? : "))
+    passwordos = getpass("Collect: OS Password? : ")
     return ipaddr, username, password, usernameos, passwordos
 
 
@@ -64,16 +71,20 @@ def receivestr(sshconn, cmd):
 
 
 # Connect to UCM Pub on port 22|Collect output from show network cluster to construct ip list for log download
-def listucm():
+def netrequests():
     _sshconn = paramiko.SSHClient()
     _sshconn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ucnodes = []
+    headers = {
+        'SOAPAction': 'http://schemas.cisco.com/ast/soap/action/#LogCollectionPort#GetOneFile',
+        'Content-Type': 'text/plain'
+    }
     try:
         _sshconn.connect(hostname=ipaddr, port=22, username=usernameos, password=passwordos, timeout=300,
                          banner_timeout=300)
         __sshConn = _sshconn.invoke_shell()
         receivestr(__sshConn, '')
-        print('Info: Connected to Platform ... ')
+        print('Info: Connected to Publisher ... ')
         buffer = receivestr(__sshConn, 'show network cluster\n')
         networkinfo = buffer.split('\r\n')
         regexip = re.compile('((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|['
@@ -81,131 +92,252 @@ def listucm():
         for node in networkinfo:
             if 'callmanager' in node and re.search(regexip, node):
                 iplist = re.search(regexip, node)
-                if iplist not in ucnodes:
+                if iplist.group(0) not in ucnodes:
                     ucnodes.append(iplist.group(0))
         _sshconn.close()
-        return ucnodes
+        print('Info: CUCM Servers Found')
+        print('Servers: ' + ', '.join(ucnodes))
+        for ip in ucnodes:
+            files = []
+            url = "https://" + ip + ":8443/logcollectionservice/services/DimeGetFileService"
+            _sshconn.connect(hostname=ip, port=22, username=usernameos, password=passwordos,
+                             timeout=300, banner_timeout=300)
+            __sshConn = _sshconn.invoke_shell()
+            receivestr(__sshConn, '')
+            print('Info: Connected to ' + ip + ' ... ')
+            buffer2 = receivestr(__sshConn, 'file list activelog /syslog/ detail \n')
+            output = buffer2.split('\r\n')
+            searchterm = re.compile('.*Syslo.*')
+            for line in output:
+                check = re.search(searchterm, line)
+                if check is not None:
+                    files.append(check.group(0))
+            flist = [filename[35:] for filename in files]
+            print('Info: Found files for download on ' + ip)
+            print('Files: ' + ', '.join(flist))
+            _sshconn.close()
+            for fname in flist:
+                payload = "<soapenv:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " \
+                          "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " \
+                          "xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
+                          "xmlns:soap=\"http://schemas.cisco.com/ast/soap/\">\n<soapenv:Header/>\n<soapenv:Body>\n<soap" \
+                          ":GetOneFile soapenv:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n<FileName>/var" \
+                          "/log" \
+                          "/active/syslog/" + fname + "</FileName>\n</soap:GetOneFile>\n</soapenv:Body>\n</soapenv:Envelope> "
+                response = requests.request("POST", url, headers=headers, data=payload,
+                                            auth=HTTPBasicAuth(username, password), verify=False, timeout=10)
+                print('Info: Downloading ' + fname + ' from ' + ip + ' ... ')
+                dnldfile = (ip + '_' + fname)
+                with open(os.path.join(downloaddir, dnldfile), 'w+', encoding='utf-8') as file:
+                    file.write(response.text[872:])
+                    file.close()
+        print('Info: Syslogs downloaded to ' + downloaddir)
     except Exception as z:
         print('Error: Failed to establish connection to UCM Publisher via SSH', z)
         _sshconn.close()
 
 
-# Perform SOAP request against CCM log collection service on port 8443 for each IP in list
-def datapull():
-    payload = "<soapenv:Envelope xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" " \
-              "xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" " \
-              "xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" " \
-              "xmlns:soap=\"http://schemas.cisco.com/ast/soap/\">\n<soapenv:Header/>\n<soapenv:Body>\n<soap" \
-              ":GetOneFile soapenv:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">\n<FileName>/var/log" \
-              "/active/syslog/CiscoSyslog</FileName>\n</soap:GetOneFile>\n</soapenv:Body>\n</soapenv:Envelope> "
-    headers = {
-        'SOAPAction': 'http://schemas.cisco.com/ast/soap/action/#LogCollectionPort#GetOneFile',
-        'Content-Type': 'text/plain'
-    }
-    for ccmip in ucnodes:
-        url = "https://" + ccmip + ":8443/logcollectionservice/services/DimeGetFileService"
-        response = requests.request("POST", url, headers=headers, data=payload, auth=HTTPBasicAuth(username, password), verify=False, timeout=10)
-        with open(os.path.join(syslogpath, 'CiscoSyslog.txt'), 'a+') as file:
-            file.write(response.text)
-            response.close()
-    file.close()
-
-
 # Parse downloaded CiscoSyslog file for strings and generate report.
 def parselogs():
     unregreport = {}
+    endpointreport = {}
     tranconnreport = {}
     siptrunkreport = {}
-    endpointreport = {}
-    index = 0
-    with open(os.path.join(syslogpath, 'CiscoSyslog.txt'), 'r') as file:
-        for line in file:
-            searchlist = ['-DeviceUnregistered', '-EndPointUnregistered', '-DeviceTransientConnection', '-SIPTrunkOOS']
-            disqualifier = 'SyslogSeverityMatchFound'
-            stepone = re.sub(r'[%\]]', "", line)
-            steptwo = re.sub(r'\[', "^", stepone)
-            stepthree = steptwo.split("^")
-            for qualifier in searchlist:
-                if qualifier and disqualifier in line:
-                    index += 1
-                elif qualifier in line:
-                    if qualifier is searchlist[0]:
-                        unregdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[5] + ',' + stepthree[6] + ',' + stepthree[12])
-                        if unregdata in unregreport:
-                            unregreport[unregdata] += 1
-                        elif unregdata not in unregreport:
-                            unregreport[unregdata] = 1
-                    elif qualifier is searchlist[1]:
-                        endpointdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[6] + ',' + stepthree[7] + ',' + stepthree[15])
-                        if endpointdata in endpointreport:
-                            endpointreport[endpointdata] += 1
-                        elif endpointdata not in endpointreport:
-                            endpointreport[endpointdata] = 1
-                    elif qualifier is searchlist[2]:
-                        tranconndata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[3] + ',' + stepthree[5] + ',' + stepthree[6] + ',' + stepthree[10])
-                        if tranconndata in tranconnreport:
-                            tranconnreport[tranconndata] += 1
-                        elif tranconndata not in tranconnreport:
-                            tranconnreport[tranconndata] = 1
-                    elif qualifier is searchlist[3]:
-                        siptrunkdata = (stepthree[1] + ',' + stepthree[2] + ',' + stepthree[5])
-                        if siptrunkdata in siptrunkreport:
-                            siptrunkreport[siptrunkdata] += 1
-                        elif siptrunkdata not in siptrunkreport:
-                            siptrunkreport[siptrunkdata] = 1
-        file.close()
+    searchlist = ['-DeviceUnregistered', '-EndPointUnregistered', 'TransientConnection', '-SIPTrunk']
+    disqualifier = 'SyslogSeverityMatchFound'
+    regexlist1 = ['DeviceName=', 'Description=', 'IPAddress=', 'Reason=', 'Protocol=', 'NodeID=']
+    regexlist2 = ['DeviceName=', 'IPAddress=', 'MACAddress=', 'Reason=', 'Protocol=', 'NodeID=']
+    regexlist3 = ['DeviceName=', 'UnavailableRemotePeersWithReasonCode=', 'NodeID=']
+    print('Info: Loading files for parsing ... ')
+    for syslg in os.listdir(downloaddir):
+        with open(os.path.join(downloaddir, syslg), 'r', encoding='utf-8') as logfile:
+            for line in logfile:
+                devicelist = []
+                endpointlist = []
+                tranconnlist = []
+                siptrunklist = []
+                if disqualifier in line:
+                    continue
+                for qualifier in searchlist:
+                    qualpattern = re.compile(r'{}'.format(qualifier))
+                    qualresult = qualpattern.search(line)
+                    if qualresult is None:
+                        continue
+                    elif qualresult is not None:
+                        if qualresult.group(0) == searchlist[0]:
+                            for term in regexlist1:
+                                regex = term + '.*?\]'
+                                pattern = re.compile(r'{}'.format(regex))
+                                result = pattern.search(line)
+                                if result is not None:
+                                    devicelist.append(result.group(0).strip(']'))
+                                elif result is None:
+                                    devicelist.append(term + "None")
+                            devicedata = (','.join(devicelist))
+                            if devicedata in unregreport:
+                                unregreport[devicedata] += 1
+                            elif devicedata not in unregreport:
+                                unregreport[devicedata] = 1
+                        if qualresult.group(0) == searchlist[1]:
+                            for term in regexlist1:
+                                regex = term + '.*?\]'
+                                pattern = re.compile(r'{}'.format(regex))
+                                result = pattern.search(line)
+                                if result is not None:
+                                    endpointlist.append(result.group(0).strip(']'))
+                                elif result is None:
+                                    endpointlist.append(term + "None")
+                            endpointdata = (','.join(endpointlist))
+                            if endpointdata in endpointreport:
+                                endpointreport[endpointdata] += 1
+                            elif endpointdata not in endpointreport:
+                                endpointreport[endpointdata] = 1
+                        if qualresult.group(0) == searchlist[2]:
+                            for term in regexlist2:
+                                regex = term + '.*?\]'
+                                pattern = re.compile(r'{}'.format(regex))
+                                result = pattern.search(line)
+                                if result is None:
+                                    tranconnlist.append(term + "None")
+                                elif result is not None:
+                                    tranconnlist.append(result.group(0).strip(']'))
+                            tranconndata = (','.join(tranconnlist))
+                            if tranconndata in tranconnreport:
+                                tranconnreport[tranconndata] += 1
+                            elif tranconndata not in tranconnreport:
+                                tranconnreport[tranconndata] = 1
+                        if qualresult.group(0) == searchlist[3]:
+                            for term in regexlist3:
+                                regex = term + '.*?\]'
+                                pattern = re.compile(r'{}'.format(regex))
+                                result = pattern.search(line)
+                                if result is None:
+                                    siptrunklist.append(term + "None")
+                                elif result is not None:
+                                    commas = result.group(0).replace(',' , '')
+                                    siptrunklist.append(commas.strip('\]'))
+                            siptrunkdata = (','.join(siptrunklist))
+                            if siptrunkdata in siptrunkreport:
+                                siptrunkreport[siptrunkdata] += 1
+                            elif siptrunkdata not in siptrunkreport:
+                                siptrunkreport[siptrunkdata] = 1
     return unregreport, tranconnreport, siptrunkreport, endpointreport
 
 
 def createreport():
-    with open(os.path.join(toptalkerspath, 'DeregTopTalkers_' + timestr + '.csv'), "w+") as results:
+    bigseparator = "-------------------------------------------------------\n"
+    smallseparator = "------\n"
+    newline = "\n\n"
+    placer = '%s,%s\n'
+    deregheader = "Count,DeviceName,Description,IPAddress,MACAddress,ReasonCode,Protocol,NodeID\n"
+    unregout = list(itertools.islice(sorted(unregreport.items(), key=lambda x: x[1], reverse=True), 10))
+    endpointout = list(itertools.islice(sorted(endpointreport.items(), key=lambda x: x[1], reverse=True), 10))
+    tranconnout = list(itertools.islice(sorted(tranconnreport.items(), key=lambda x: x[1], reverse=True), 10))
+    siptrunkout = list(itertools.islice(sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True), 10))
+    print("Info: Constructing TopTalkers report ... ")
+    with open(os.path.join(toptalkerspath, 'TopTalkersReport_' + timestr + '.csv'), 'w+', encoding='utf-8') as topresults:
+        topresults.write("Device Unregistered\n")
+        topresults.write(bigseparator)
+        topresults.write(deregheader)
+        for info1, count1 in unregout:
+            topresults.write(placer % (count1, info1))
+        topresults.write(smallseparator)
+        topresults.write(newline)
+        topresults.write("Endpoint Unregistered\n")
+        topresults.write(bigseparator)
+        topresults.write(deregheader)
+        for info2, count2 in endpointout:
+            topresults.write(placer % (count2, info2))
+        topresults.write(smallseparator)
+        topresults.write(newline)
+        topresults.write("Transient Connections\n")
+        topresults.write(bigseparator)
+        topresults.write("Count,DeviceName,IPAddress,MACAddress,ReasonCode,Protocol,NodeID\n")
+        for info3, count3 in tranconnout:
+            topresults.write(placer % (count3, info3))
+        topresults.write(smallseparator)
+        topresults.write(newline)
+        topresults.write("SIP Trunk Out of Service\n")
+        topresults.write(bigseparator)
+        topresults.write("Count,DeviceName,PeerIP_Port_Reason,NodeID\n")
+        for info4, count4 in siptrunkout:
+            topresults.write(placer % (count4, info4))
+        topresults.close()
+    print("Info: Top talkers report (top 10) is available in " + toptalkerspath + ".")
+    fullreport = input("Collect: Do you want the full report? (Y\\n): ").lower() or "42"
+    while True:
+        try:
+            if fullreport == "n":
+                print("Info: Exiting ... ")
+                exit()
+            elif fullreport == "y" or "42":
+                break
+            else:
+                print("Info: Please input Y or N. Press Enter for the default.")
+        except Exception:
+            continue
+    print("Info: Constructing Full report ... ")
+    with open(os.path.join(toptalkerspath, 'FullReport_' + timestr + '.csv'), 'w+', encoding='utf-8') as results:
         results.write("Device Unregistered\n")
-        results.write("-------------------------------------------------------\n")
-        results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
+        results.write(bigseparator)
+        results.write(deregheader)
         for info1, count1 in sorted(unregreport.items(), key=lambda x: x[1], reverse=True):
-            results.write('%s,%s' % (count1, info1))
-        results.write("------")
-        results.write('\n\n\n')
+            results.write(placer % (count1, info1))
+        results.write(smallseparator)
+        results.write(newline)
         results.write("Endpoint Unregistered\n")
-        results.write("-------------------------------------------------------\n")
-        results.write("Count,DeviceName,IPAddress,Description,ReasonCode,NodeID_InfoText\n")
+        results.write(bigseparator)
+        results.write(deregheader)
         for info2, count2 in sorted(endpointreport.items(), key=lambda x: x[1], reverse=True):
-            results.write('%s,%s' % (count2, info2))
-        results.write("------")
-        results.write('\n\n\n')
+            results.write(placer % (count2, info2))
+        results.write(smallseparator)
+        results.write(newline)
         results.write("Transient Connections\n")
-        results.write("-------------------------------------------------------\n")
-        results.write("Count,SourcePort,DeviceName,IPAddress,ReasonCode,Protocol,NodeID_InfoText\n")
+        results.write(bigseparator)
+        results.write(deregheader)
         for info3, count3 in sorted(tranconnreport.items(), key=lambda x: x[1], reverse=True):
-            results.write('%s,%s' % (count3, info3))
-        results.write("------")
-        results.write('\n\n\n')
+            results.write(placer % (count3, info3))
+        results.write(smallseparator)
+        results.write(newline)
         results.write("SIP Trunk Out of Service\n")
-        results.write("-------------------------------------------------------\n")
-        results.write("Count,DeviceName,PeerIP_ReasonCode,NodeID_InfoText\n")
+        results.write(bigseparator)
+        results.write("Count,DeviceName,PeerIP_Port_Reason,NodeID\n")
         for info4, count4 in sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True):
-            results.write('%s,%s' % (count4, info4))
-        results.close()
+            results.write(placer % (count4, info4))
+    results.close()
+    print("Info: Full report is available in " + toptalkerspath + ".")
 
 
-try:
-    setup()
-    ipaddr, username, password, usernameos, passwordos = infocollect()
-    print("Finding cluster Subscriber IP addresses.")
-    ucnodes = listucm()
-    print("Downloading the CiscoSyslog file now from the cluster.")
-    datapull()
-    print("Beginning Syslog Parse for Device Deregistration events.")
-    time.sleep(1)
-    unregreport, tranconnreport, siptrunkreport, endpointreport = parselogs()
-    print("Constructing top talkers report in .csv format.")
-    time.sleep(1)
-    createreport()
-    print("-------------------------------------------------------")
-    print("Top talkers report is available in " + toptalkerspath + ".")
-    print("-------------------------------------------------------")
-    print("Cleaning up")
-    os.remove(os.path.join(syslogpath, 'CiscoSyslog.txt'))
-except Exception as e:
-    print(e)
-    exit()
+def cleanup():
+    cleanup = input("Collect: Delete downloaded log files? (Y\\n): ").lower() or "42"
+    while True:
+        try:
+            if cleanup == "n":
+                print("Info: Exiting ... ")
+                exit()
+            elif cleanup == "y" or "42":
+                shutil.rmtree(downloaddir)
+                break
+            else:
+                print("Info: Please input Y or N. Press Enter for the default.")
+        except OSError as c:
+            print("Error: %s : %s" % (downloaddir, c.strerror))
+            print("Error: File cleanup requires write and execute permissions on directory " + downloaddir + ".")
+            print("Info: Exiting ... ")
+            exit()
+        except Exception:
+            continue
+
+
+if __name__ == "__main__":
+    try:
+        setup()
+        ipaddr, username, password, usernameos, passwordos = infocollect()
+        netrequests()
+        unregreport, tranconnreport, siptrunkreport, endpointreport = parselogs()
+        createreport()
+        cleanup()
+        exit()
+    except Exception as e:
+        print(e)
+        exit()
