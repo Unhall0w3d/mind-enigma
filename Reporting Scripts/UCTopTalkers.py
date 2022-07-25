@@ -334,6 +334,8 @@ def cleanup():
                 exit()
             elif cleanup == "y":
                 shutil.rmtree(downloaddir)
+                print("Info: Downloaded logs deleted.")
+                print(infoexit)
                 break
             elif cleanup != "n" or "y":
                 print("Info: Please input Y or N. Press Enter for the default.")
