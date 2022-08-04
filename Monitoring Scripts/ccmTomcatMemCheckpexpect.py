@@ -67,5 +67,6 @@ def backsquats():
 
 if __name__ == "__main__":
     ip, un, pw = infocollect()
-    backsquats()
-    exit()
+    while True:
+        backsquats()
+        time.sleep(86340)
