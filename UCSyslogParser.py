@@ -5,7 +5,7 @@ from pyparsing import Word, alphas, Suppress, Combine, nums, string, alphanums, 
 class Parser(object):
     def __init__(self):
         ints = Word(nums)
-        punc = "-_.;"
+        punc = "-_.;,"
         # Timestamp
         month = Word(string.ascii_uppercase, string.ascii_lowercase, exact=3)
         day = ints
@@ -82,7 +82,6 @@ class Parser(object):
         info = OneOrMore(infoval)
 
         # Build Patterns
-
         self.__endpointall = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp +\
             tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason \
             + ipattrib + lastsig + appid + cluster + node + info
@@ -130,7 +129,7 @@ class Parser(object):
                     # print("nosig-yesdesc-yescallstate")
                     # print(parsed)
                     payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "callstate": parsed[23], "reason": parsed[21],
-                        "node": parsed[25]}
+                        "node": parsed[26]}
                     return payload
         elif dosearch is not None:
             descsigkywd = "Description"
