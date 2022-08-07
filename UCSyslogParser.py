@@ -1,5 +1,6 @@
 import re
-from pyparsing import Word, alphas, Suppress, Combine, nums, string, alphanums, OneOrMore, White, Optional
+from pyparsing import Word, alphas, Suppress, Combine, nums, string, alphanums, OneOrMore, \
+    White, Optional, alphas8bit, punc8bit, ZeroOrMore
 import itertools
 import os
 import shutil
@@ -141,7 +142,7 @@ def netrequests():
                 print('Info: Downloading ' + fname + ' from ' + ip + ' ... ')
                 dnldfile = (ip + '_' + fname)
                 with open(os.path.join(downloaddir, dnldfile), 'w+', encoding='utf-8') as file:
-                    file.write(response.text[869:])
+                    file.write(response.text)
                     file.close()
         print('Info: Syslogs downloaded to ' + downloaddir)
     except Exception as z:
@@ -152,7 +153,7 @@ def netrequests():
 class Parser(object):
     def __init__(self):
         ints = Word(nums)
-        punc = "-_.;"
+        punc = "_.;:()€“,-=–/\\'"
 
         # Timestamp
         month = Word(string.ascii_uppercase, string.ascii_lowercase, exact=3)
@@ -166,7 +167,7 @@ class Parser(object):
         tzdata = Word(string.ascii_uppercase, exact=3)
 
         # Hostname
-        hostname = Word(alphanums + "-_.")
+        hostname = Word(alphanums + "-_.:")
 
         # Local Syslog
         local = Word(alphanums)
@@ -175,22 +176,31 @@ class Parser(object):
         priority = ints
 
         # Server Type
-        srvtype = Combine(Word(string.ascii_lowercase, exact=3) + Suppress(":"))
+        srvtype = Combine(ZeroOrMore(Word(string.ascii_lowercase, exact=3)) + Suppress(":"))
 
         # Message Number
         msgnum = Combine(ints + Suppress(":"))
 
         # Separator
-        separator = ":   "
+        separator = ":"
 
         # Message Type
-        msgtype = Word("%:-_" + alphanums)
+        msgtype = Word(":%-_" + alphanums)
 
         # Device Name
-        devname = Suppress("%[") + Combine("DeviceName=" + Optional(Word(alphanums + punc))) + Suppress("]")
+        devval = Combine(OneOrMore(Word(alphanums + punc) | White(' ', max=3) + ~White()))
+        devname = Suppress("%[") + Combine("DeviceName=" + ZeroOrMore(devval)) + Suppress("]")
+
+        # UnavailableRemotePeers
+        peerval = Combine(OneOrMore(Word(alphanums + punc) | White(' ', max=1) + ~White()))
+        peers = Suppress("[") + Combine("UnavailableRemotePeersWithReasonCode=" + ZeroOrMore(peerval)) + Suppress("]")
 
         # Device IP
         devip = Suppress("[") + Combine("IPAddress=" + Word(nums + ".")) + Suppress("]")
+        devip6 = Suppress("[") + Combine("IPV6Address=" + Word(alphanums + punc)) + Suppress("]")
+
+        # MAC Address
+        macaddr = Suppress("[") + Combine("MACAddress=" + Word(alphanums)) + Suppress("]")
 
         # Protocol
         protocol = Suppress("[") + Combine("Protocol=" + Word(alphas)) + Suppress("]")
@@ -198,19 +208,24 @@ class Parser(object):
         # Device Type
         devtype = Suppress("[") + Combine("DeviceType=" + ints) + Suppress("]")
 
+        # Product Type
+        prodval = Combine(OneOrMore(Word(alphanums + punc) | White(' ', max=1) + ~White()))
+        prodtype = Suppress("[") + Combine("ProductType=" + OneOrMore(prodval)) + Suppress("]")
+
         # Description
-        descval = Combine(OneOrMore(Word(alphanums + punc) | White(' ', max=1) + ~White()))
-        desc = Suppress("[") + Combine("Description=" + OneOrMore(descval)) + Suppress("]")
+        descval = Combine(OneOrMore(Word(alphanums + punc + alphas8bit) | White(' ', max=2) + ~White()))
+        desc = Suppress("[") + OneOrMore(descval) + Suppress("]")
 
         # Reason Code
         reason = Suppress("[") + Combine("Reason=" + ints) + Suppress("]")
         reasoncode = Suppress("[") + Combine("ReasonCode=" + ints) + Suppress("]")
 
         # IP Attributes
-        ipattrib = Suppress("[") + Combine("IPAddrAttributes=" + Word(nums + ".", asKeyword=True)) + Suppress("]")
+        ipattrib = Suppress("[") + Combine("IPAddrAttributes=" + Word(nums + punc)) + Suppress("]")
+        ipattrib6 = Suppress("[") + Combine("IPV6AddrAttributes=" + Word(alphanums)) + Suppress("]")
 
         # Last Signal Received
-        lastsig = Suppress("[") + Combine("LastSignalReceived=" + Word(alphanums, asKeyword=True)) + Suppress("]")
+        lastsig = Suppress("[") + Combine("LastSignalReceived=" + Word(alphanums)) + Suppress("]")
 
         # App ID
         # appid = Suppress("[") + "AppID=" + Word(printables + " ") + Suppress("]")
@@ -231,25 +246,56 @@ class Parser(object):
         info = OneOrMore(infoval)
 
         # Search Patterns - EndpointUnregistered
-        self.__endpointall = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp +\
+        self.__epdefault = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
             tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason \
             + ipattrib + lastsig + appid + cluster + node + info
-        self.__endpointnodesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+        self.__epnodesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
             tzdata + separator + msgtype + devname + devip + protocol + devtype + reason \
             + ipattrib + lastsig + appid + cluster + node + info
-        self.__endpointnosigcall = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
-            tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason \
-            + ipattrib + appid + cluster + node + info
-        self.__endpointnosigdesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
-            tzdata + separator + msgtype + devname + devip + protocol + devtype + reason \
-            + ipattrib + appid + cluster + node + info
-        self.__endpointnosig = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+        self.__epnosig = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
             tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason \
             + ipattrib + callstate + appid + cluster + node + info
+        self.__epnosignodesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + reason \
+            + ipattrib + appid + cluster + node + info
+        self.__epnosignocall = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason \
+            + ipattrib + appid + cluster + node + info
+        self.__epnosignocallyesmac = timestamp + hostname + local + priority + srvtype + msgnum + hostname +\
+            extimestamp + tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason + \
+            macaddr + ipattrib + appid + cluster + node + info
+        self.__epnosigyescallyesmac = timestamp + hostname + local + priority + srvtype + msgnum + hostname +\
+            extimestamp + tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason + \
+            macaddr + ipattrib + callstate + appid + cluster + node + info
+        self.__epallbutmac = timestamp + hostname + local + priority + srvtype + msgnum + hostname +\
+            extimestamp + tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason + \
+            ipattrib + lastsig + callstate + appid + cluster + node + info
 
         # Search Patterns - StationConnectionError
         self.__stationall = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp +\
             tzdata + separator + msgtype + devname + reasoncode + appid + cluster + node + info
+
+        # Search Patterns - EndPointRestartInitiated
+        self.__eprestart = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp +\
+            tzdata + separator + msgtype + devname + devtype + prodtype + appid + cluster + node + info
+
+        # Search Patterns - DeviceUnregistered
+        self.__devunreg6desc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason + devip6 + ipattrib + \
+            ipattrib6 + appid + cluster + node + info
+        self.__devunregdesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + desc + reason + ipattrib + \
+                appid + cluster + node + info
+        self.__devunreg6nodesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + reason + devip6 + ipattrib + \
+            ipattrib6 + appid + cluster + node + info
+        self.__devunregnodesc = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + devip + protocol + devtype + reason + ipattrib + \
+                appid + cluster + node + info
+
+        # Search Patterns - SIPTrunkOOS
+        self.__siptrunk = timestamp + hostname + local + priority + srvtype + msgnum + hostname + extimestamp + \
+            tzdata + separator + msgtype + devname + peers + appid + cluster + node + info
 
     def endpointparse(self, line):
         sigkywd = "LastSignalReceived"
@@ -260,9 +306,7 @@ class Parser(object):
             descsearching = re.compile(r'{}'.format(descsigkywd))
             descsearch = descsearching.search(line)
             if descsearch is None:
-                parsed = self.__endpointnosigdesc.parseString(line)
-                # print("nosig-nodesc")
-                # print(parsed)
+                parsed = self.__epnosignodesc.parseString(line)
                 payload = {"device": parsed[16], "ip": parsed[17], "description": "Description=", "reason": parsed[21],
                         "node": parsed[26], "lastsignal": "LastSignalReceived=", "callstate": "CallState="}
                 return payload
@@ -271,90 +315,207 @@ class Parser(object):
                 callsearching = re.compile(r'{}'.format(callkywd))
                 callsearch = callsearching.search(line)
                 if callsearch is None:
-                    parsed = self.__endpointnosigcall.parseString(line)
-                    # print("nosig-yesdesc-nocallstate")
-                    # print(parsed)
-                    payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
-                        "node": parsed[25], "lastsignal": "LastSignalReceived=", "callstate": "CallState="}
-                    return payload
+                    mackywd = "MACAddress"
+                    macsearching = re.compile(r'{}'.format(mackywd))
+                    macsearch = macsearching.search(line)
+                    if macsearch is None:
+                        parsed = self.__epnosignocall.parseString(line)
+                        payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                            "node": parsed[25], "lastsignal": "LastSignalReceived=", "callstate": "CallState="}
+                        return payload
+                    if macsearch is not None:
+                        parsed = self.__epnosignocallyesmac.parseString(line)
+                        payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20],
+                            "reason": parsed[21], "node": parsed[26], "lastsignal": "LastSignalReceived=",
+                            "callstate": "CallState="}
+                        return payload
                 if callsearch is not None:
-                    parsed = self.__endpointnosig.parseString(line)
-                    # print("nosig-yesdesc-yescallstate")
-                    # print(parsed)
-                    payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
-                        "node": parsed[25], "lastsignal": "LastSignalReceived=", "callstate": parsed[23]}
-                    return payload
+                    mackywd = "MACAddress"
+                    macsearching = re.compile(r'{}'.format(mackywd))
+                    macsearch = macsearching.search(line)
+                    if macsearch is None:
+                        parsed = self.__epnosig.parseString(line)
+                        payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                            "node": parsed[25], "lastsignal": "LastSignalReceived=", "callstate": parsed[23]}
+                        return payload
+                    if macsearch is not None:
+                        parsed = self.__epnosigyescallyesmac.parseString(line)
+                        payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                            "node": parsed[27], "lastsignal": "LastSignalReceived=", "callstate": parsed[24]}
+                        return payload
         elif dosearch is not None:
             descsigkywd = "Description"
             descsearching = re.compile(r'{}'.format(descsigkywd))
             descsearch = descsearching.search(line)
             if descsearch is None:
-                parsed = self.__endpointnodesc.parseString(line)
-                # print("yessig-nodesc")
-                # print(parsed)
-                payload = {"device": parsed[16], "ip": parsed[17], "description": "Description=", "reason": parsed[20],
-                "node": parsed[25], "lastsignal": parsed[22], "callstate": "CallState="}
-                return payload
+                mackywd = "MACAddress"
+                macsearching = re.compile(r'{}'.format(mackywd))
+                macsearch = macsearching.search(line)
+                if macsearch is None:
+                    parsed = self.__epnodesc.parseString(line)
+                    payload = {"device": parsed[16], "ip": parsed[17], "description": "Description=",
+                        "reason": parsed[20], "node": parsed[25], "lastsignal": parsed[22], "callstate": "CallState="}
+                    return payload
+                if macsearch is not None:
+                    parsed = self.__epnosignocallyesmac.parseString(line)
+                    payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                        "node": parsed[26], "lastsignal": "LastSignalReceived=", "callstate": "CallState="}
+                    return payload
             elif descsearch is not None:
-                parsed = self.__endpointall.parseString(line)
-                # print("all")
-                # print(parsed)
-                payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
-                    "node": parsed[26], "lastsignal": parsed[22], "callstate": "CallState="}
-                return payload
+                callkywd = "CallState"
+                callsearching = re.compile(r'{}'.format(callkywd))
+                callsearch = callsearching.search(line)
+                if callsearch is None:
+                    parsed = self.__epdefault.parseString(line)
+                    payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                        "node": parsed[26], "lastsignal": parsed[22], "callstate": "CallState="}
+                    return payload
+                if callsearch is not None:
+                    parsed = self.__epallbutmac.parseString(line)
+                    payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                        "node": parsed[26], "lastsignal": parsed[23], "callstate": parsed[24]}
+                    return payload
 
     def stationparse(self, line):
         parsed = self.__stationall.parseString(line)
         payload = {"device": parsed[16], "reason": parsed[17], "node": parsed[20]}
         return payload
 
+    def eprestartparse(self, line):
+        parsed = self.__eprestart.parseString(line)
+        payload = {"device": parsed[16], "product": parsed[18], "node": parsed[21], "info": parsed[22]}
+        return payload
+
+    def devunregparse(self, line):
+        ip6kywd = "IPV6Address"
+        ip6searching = re.compile(r'{}'.format(ip6kywd))
+        ip6search = ip6searching.search(line)
+        if ip6search is None:
+            descsigkywd = "Description"
+            descsearching = re.compile(r'{}'.format(descsigkywd))
+            descsearch = descsearching.search(line)
+            if descsearch is None:
+                parsed = self.__devunregnodesc.parseString(line)
+                payload = {"device": parsed[16], "ip": parsed[17], "description": "Description=", "reason": parsed[20],
+                    "node": parsed[24]}
+                return payload
+            if descsearch is not None:
+                parsed = self.__devunregdesc.parseString(line)
+                payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                    "node": parsed[25]}
+                return payload
+        if ip6search is not None:
+            descsigkywd = "Description"
+            descsearching = re.compile(r'{}'.format(descsigkywd))
+            descsearch = descsearching.search(line)
+            if descsearch is None:
+                parsed = self.__devunreg6nodesc.parseString(line)
+                payload = {"device": parsed[16], "ip": parsed[17], "description": "Description=", "reason": parsed[20],
+                    "node": parsed[26]}
+                return payload
+            if descsearch is not None:
+                parsed = self.__devunreg6desc.parseString(line)
+                payload = {"device": parsed[16], "ip": parsed[17], "description": parsed[20], "reason": parsed[21],
+                    "node": parsed[27]}
+                return payload
+
+    def siptrunkparse(self, line):
+        print(line)
+        parsed = self.__siptrunk.parseString(line)
+        payload = {"device": parsed[16], "peers": parsed[17], "node": parsed[20]}
+        return payload
+
 
 def main():
     parser = Parser()
-    searchlist = ['-EndPointUnregistered', '-StationConnectionError']
-    endpointreport = {}
+    searchlist = ['-EndPointUnregistered', '-StationConnectionError', '-EndPointRestartInitiated',
+                  '-DeviceUnregistered', '-SIPTrunkOOS']
+    disqualifier = 'SyslogSeverityMatchFound'
+    epunregreport = {}
     stationsreport = {}
-    with open("test.txt") as syslogfile:
-        for line in syslogfile:
-            for search in searchlist:
-                searchpattern = re.compile(r'{}'.format(search))
-                searchresult = searchpattern.search(line)
-                if searchresult is None:
+    eprestartreport = {}
+    devunregreport = {}
+    siptrunkreport = {}
+    for syslog in os.listdir("C:\\Users\\kenop\\PycharmProjects\\mind-enigma\\syslogs\\"):
+        with open(os.path.join("C:\\Users\\kenop\\PycharmProjects\\mind-enigma\\syslogs\\", syslog), encoding='utf-8') as syslogfile:
+            print(syslogfile.name)
+            for line in syslogfile:
+                if disqualifier in line:
                     continue
-                elif searchresult is not None:
-                    if searchresult.group(0) == searchlist[0]:
-                        endpoints = parser.endpointparse(line)
-                        endpointdata = ','.join(str(x) for x in endpoints.values())
-                        if endpointdata in endpointreport:
-                            endpointreport[endpointdata] += 1
-                        elif endpointdata not in endpointreport:
-                            endpointreport[endpointdata] = 1
-                    if searchresult.group(0) == searchlist[1]:
-                        stations = parser.stationparse(line)
-                        stationsdata = ','.join(str(x) for x in stations.values())
-                        if stationsdata in stationsreport:
-                            stationsreport[stationsdata] += 1
-                        elif stationsdata not in stationsreport:
-                            stationsreport[stationsdata] = 1
-    return endpointreport, stationsreport
+                for search in searchlist:
+                    searchpattern = re.compile(r'{}'.format(search))
+                    searchresult = searchpattern.search(line)
+                    if searchresult is None:
+                        continue
+                    elif searchresult is not None:
+                        if searchresult.group(0) == searchlist[0]:
+                            epunreg = parser.endpointparse(line)
+                            epunregdata = ','.join(str(x) for x in epunreg.values())
+                            if epunregdata in epunregreport:
+                                epunregreport[epunregdata] += 1
+                            elif epunregdata not in epunregreport:
+                                epunregreport[epunregdata] = 1
+                        if searchresult.group(0) == searchlist[1]:
+                            stations = parser.stationparse(line)
+                            stationsdata = ','.join(str(x) for x in stations.values())
+                            if stationsdata in stationsreport:
+                                stationsreport[stationsdata] += 1
+                            elif stationsdata not in stationsreport:
+                                stationsreport[stationsdata] = 1
+                        if searchresult.group(0) == searchlist[2]:
+                            eprestart = parser.eprestartparse(line)
+                            epdata = ','.join(str(x) for x in eprestart.values())
+                            if epdata in eprestartreport:
+                                eprestartreport[epdata] += 1
+                            elif epdata not in eprestartreport:
+                                eprestartreport[epdata] = 1
+                        if searchresult.group(0) == searchlist[3]:
+                            devunreg = parser.devunregparse(line)
+                            devunregdata = ','.join(str(x) for x in devunreg.values())
+                            if devunregdata in devunregreport:
+                                devunregreport[devunregdata] += 1
+                            elif devunregdata not in devunregreport:
+                                devunregreport[devunregdata] = 1
+                        if searchresult.group(0) == searchlist[4]:
+                            sipoos = parser.siptrunkparse(line)
+                            siptrunkdata = ','.join(str(x) for x in sipoos.values())
+                            if siptrunkdata in siptrunkreport:
+                                siptrunkreport[siptrunkdata] += 1
+                            elif siptrunkdata not in siptrunkreport:
+                                siptrunkreport[siptrunkdata] = 1
+    return epunregreport, stationsreport, eprestartreport, devunregreport, siptrunkreport
 
 
 # Create TopTalkers report by default with top 10 chatty syslogs
 # Prompt user to create full report not filtered by top 10.
 def createreport():
     placer = '%s,%s\n'
-    deregheader = "count,device,ip,description,reason,node,lastsignal,callstate\n"
     endpointout = list(itertools.islice(sorted(endpointreport.items(), key=lambda x: x[1], reverse=True), 30))
     stationsout = list(itertools.islice(sorted(stationsreport.items(), key=lambda x: x[1], reverse=True), 30))
+    eprout = list(itertools.islice(sorted(eprestartreport.items(), key=lambda x: x[1], reverse=True), 30))
+    devunregout = list(itertools.islice(sorted(devunregreport.items(), key=lambda x: x[1], reverse=True), 30))
+    siptrunkout = list(itertools.islice(sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True), 20))
     print("Info: Constructing TopTalkers report ... ")
     with open(os.path.join(temppath, 'EndpointUnregistered.csv'), 'w+', encoding='utf-8') as eptemp:
-        eptemp.write(deregheader)
+        eptemp.write("count,device,ip,description,reason,node,lastsignal,callstate\n")
         for info, count in endpointout:
             eptemp.write(placer % (count, info))
     with open(os.path.join(temppath, 'StationConnectionError.csv'), 'w+', encoding='utf-8') as sttemp:
         sttemp.write("count,device,reason,nodeid\n")
         for info, count in stationsout:
             sttemp.write(placer % (count, info))
+    with open(os.path.join(temppath, 'EndPointRestartInitiated.csv'), 'w+', encoding='utf-8') as eprtemp:
+        eprtemp.write("count,device,product,nodeid,info\n")
+        for info, count in eprout:
+            eprtemp.write(placer % (count, info))
+    with open(os.path.join(temppath, 'DeviceUnregistered.csv'), 'w+', encoding='utf-8') as devtemp:
+        devtemp.write("count,device,ip,description,reason,node\n")
+        for info, count in devunregout:
+            devtemp.write(placer % (count, info))
+    with open (os.path.join(temppath, 'SIPTrunkOOS.csv'), 'w+', encoding='utf-8') as siptemp:
+        siptemp.write("count,device,peer_reasoncode,node\n")
+        for info, count in siptrunkout:
+            siptemp.write(placer % (count, info))
     writer = pd.ExcelWriter(os.path.join(toptalkerspath, 'TopTalkersReport_' + timestr + '.xlsx'), engine='xlsxwriter')
     for tempfile in glob.glob(temppath + "\\*.csv"):
         filecombine = pd.read_csv(tempfile)
@@ -366,6 +527,7 @@ def createreport():
 
 # Prompt user to perform cleanup by deleting the date-time named folder in CiscoSyslogs\, optional
 def cleanup():
+    shutil.rmtree(temppath)
     while True:
         try:
             cleanup = input("Collect: Delete downloaded log files? (Y\\n): ").lower()
@@ -373,8 +535,7 @@ def cleanup():
                 print(infoexit)
                 exit()
             elif cleanup == "y":
-                shutil.rmtree(downloaddir)
-                shutil.rmtree(temppath)
+                shutil.rmtree(syslogpath)
                 print("Info: Downloaded logs deleted.")
                 print(infoexit)
                 break
@@ -395,7 +556,7 @@ if __name__ == "__main__":
         setup()
         # ipaddr, username, password, usernameos, passwordos = infocollect()
         # netrequests()
-        endpointreport, stationsreport = main()
+        endpointreport, stationsreport, eprestartreport, devunregreport, siptrunkreport = main()
         createreport()
         cleanup()
         exit()
