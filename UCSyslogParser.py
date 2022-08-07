@@ -228,7 +228,6 @@ class Parser(object):
         lastsig = Suppress("[") + Combine("LastSignalReceived=" + Word(alphanums)) + Suppress("]")
 
         # App ID
-        # appid = Suppress("[") + "AppID=" + Word(printables + " ") + Suppress("]")
         appidval = Combine(OneOrMore(Word(alphas) | White(' ', max=1) + ~White()))
         appid = Suppress("[") + Combine("AppID=" + OneOrMore(appidval)) + Suppress("]")
 
@@ -420,9 +419,11 @@ class Parser(object):
                 return payload
 
     def siptrunkparse(self, line):
-        print(line)
         parsed = self.__siptrunk.parseString(line)
-        payload = {"device": parsed[16], "peers": parsed[17], "node": parsed[20]}
+        print(parsed)
+        peers = parsed[17]
+        _peers = peers.replace(',', '')
+        payload = {"device": parsed[16], "peers": _peers, "node": parsed[20]}
         return payload
 
 
@@ -494,7 +495,7 @@ def createreport():
     stationsout = list(itertools.islice(sorted(stationsreport.items(), key=lambda x: x[1], reverse=True), 30))
     eprout = list(itertools.islice(sorted(eprestartreport.items(), key=lambda x: x[1], reverse=True), 30))
     devunregout = list(itertools.islice(sorted(devunregreport.items(), key=lambda x: x[1], reverse=True), 30))
-    siptrunkout = list(itertools.islice(sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True), 20))
+    siptrunkout = list(itertools.islice(sorted(siptrunkreport.items(), key=lambda x: x[1], reverse=True), 30))
     print("Info: Constructing TopTalkers report ... ")
     with open(os.path.join(temppath, 'EndpointUnregistered.csv'), 'w+', encoding='utf-8') as eptemp:
         eptemp.write("count,device,ip,description,reason,node,lastsignal,callstate\n")
