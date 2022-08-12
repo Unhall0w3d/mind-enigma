@@ -7,7 +7,7 @@ This should drive down the amount of syslogs generated and ultimately lead to a 
 
 ## General Flow
 
-1. Prompt the user for CCM Publisher IP, OS Username, OS Password.
+1. Prompt the user for CCM Publisher IP, GUI Username, GUI Password, OS Username, OS Password.
 2. Log in to CCM Pub and identify all CCM server IPs.
    1. This is done via CLI due to AXL query returning Hostname/FQDN when servers are defined this way. To avoid potential
 DNS issues, CLI is used to grab IPs.
