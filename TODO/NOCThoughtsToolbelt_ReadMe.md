@@ -6,6 +6,8 @@
 #####################################
 ```
 
+## NOTE
+Script will be broken down into component parts, rather than packaged as a large toolbelt. Scripts will end up in corresponding folders for their general purpose.
 # Main Menu
 ```
 1: Cisco Phone Requests
