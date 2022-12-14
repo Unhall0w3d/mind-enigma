@@ -16,6 +16,7 @@ import xml.dom.minidom
 from getpass import getpass
 import xml.etree.ElementTree as ET
 import os
+from requests.auth import HTTPBasicAuth
 
 # Define tmp directory
 dirname = 'tmp'
@@ -79,7 +80,7 @@ def infocollect():
     myusername = str(input('What is the GUI Username?: '))
     mypassword = getpass('What is the GUI Password?: ')
     try:
-        r = requests.get(axlurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
+        r = requests.get(axlurl + ccmip + '/axl', auth=HTTPBasicAuth(myusername, mypassword), verify=False)
         if r.status_code != 200:
             print('AXL Interface check failed. Please check connectivity at https://<ucm-ip>/axl.')
             print('Ensure the credentials and version info is correct.')
@@ -102,7 +103,7 @@ def collectdevicepool(cucmipaddr, cucmusername, cucmpassword, cucmversion):
         'Content-Type': 'text/plain'
     }
     response = requests.request("POST", axlurl + cucmipaddr + '/axl/', headers=headers, data=payload,
-                                auth=(cucmusername, cucmpassword), verify=False)
+                                auth=HTTPBasicAuth(cucmusername, cucmpassword), verify=False)
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
     xml_pretty_str = xmldata.toprettyxml()
@@ -139,7 +140,7 @@ def ucmdbdip_dp(cucmipaddr, cucmversion, cucmpassword, cucmusername, cucmdevicep
     print()
     print('Collecting Data...')
     response = requests.request("POST", axlurl + cucmipaddr + '/axl/', headers=headers, data=payload,
-                                auth=(cucmusername, cucmpassword), verify=False)
+                                auth=HTTPBasicAuth(cucmusername, cucmpassword), verify=False)
     # We encode the text response from POST request as utf8 and pretty print it to a file
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
@@ -164,7 +165,7 @@ def ucmdbdip_all(cucmipaddr, cucmversion, cucmpassword, cucmusername):
     print()
     print('Collecting Data...')
     response = requests.request("POST", axlurl + cucmipaddr + '/axl/', headers=headers, data=payload,
-                                auth=(cucmusername, cucmpassword), verify=False)
+                                auth=HTTPBasicAuth(cucmusername, cucmpassword), verify=False)
     # We encode the text response from POST request as utf8 and pretty print it to a file
     uglyxml = response.text.encode('utf8')
     xmldata = xml.dom.minidom.parseString(uglyxml)
@@ -180,7 +181,7 @@ def checkregstate(cucmipaddr, cucmpassword, cucmusername, devname):
                                                        '=&SubSystemType=&Status=1&DownloadStatus=&MaxDevices=200'
                                                        '&Model=&SearchType=Name&Protocol=Any&SearchPattern=' + devname,
                                 verify=False,
-                                auth=(cucmusername, cucmpassword))
+                                auth=HTTPBasicAuth(cucmusername, cucmpassword))
         devicelist = devname.split(",")
         xmlresponse = ET.fromstring(response.content)
         for item in xmlresponse.iter('DeviceReply'):

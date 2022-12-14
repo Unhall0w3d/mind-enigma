@@ -10,6 +10,7 @@
 import requests
 import urllib3
 from getpass import getpass
+from requests.auth import HTTPBasicAuth
 
 # Define disablement of HTTPS Insecure Request error message.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -26,7 +27,7 @@ mypassword = getpass('What is the GUI Password?: ')
 
 # Here's where we verify reachability of the AXL interface for DB dip.
 try:
-    reachabilitycheck = requests.get(baseurl + ccmip + '/axl', auth=(myusername, mypassword), verify=False)
+    reachabilitycheck = requests.get(baseurl + ccmip + '/axl', auth=HTTPBasicAuth(myusername, mypassword), verify=False)
     if reachabilitycheck.status_code != 200:
         print('AXL Interface at ' + baseurl + ccmip + '/axl/ is not available, or some other error. '
                                                       'Please verify CCM AXL Service Status.')

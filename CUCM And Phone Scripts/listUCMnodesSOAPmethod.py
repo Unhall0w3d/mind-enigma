@@ -1,5 +1,17 @@
 # Function to collect CCM Subscriber IP addresses.
-def listucm():
+import requests
+from requests.auth import HTTPBasicAuth
+from getpass import getpass
+
+
+def infocollect():
+    ipaddr = str(input("Collect: CCM Pub IP? : "))
+    username = str(input("Collect: GUI Username? : "))
+    password = getpass("Collect: GUI Password? : ")
+    return ipaddr, username, password
+
+
+def listucm(ipaddr, username, password):
     try:
         ucnodes = []
         url = "https://" + ipaddr + ":8443/ast/ASTIsapi.dll?GetPreCannedInfo&Items=getCtiManagerInfoRequest"
@@ -19,3 +31,8 @@ def listucm():
         print("We encountered an error while pulling CCM Subscriber info. Exiting.")
         print(e)
         exit()
+
+
+ipaddr, username, password = infocollect()
+listucm(ipaddr, username, password)
+exit()
