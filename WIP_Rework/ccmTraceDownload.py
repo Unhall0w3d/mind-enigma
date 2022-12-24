@@ -2,6 +2,10 @@ import requests
 from requests.auth import HTTPBasicAuth
 import xml.etree.ElementTree as ET
 import os
+from getpass import getpass
+
+# Disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Prompt the user to enter the hostname and port of the CUCM AXL interface
 hostname = input('Enter the hostname of the CUCM AXL interface: ')
@@ -9,10 +13,10 @@ port = input('Enter the port of the CUCM AXL interface: ')
 
 # Prompt the user to enter the username and password to use for authentication
 username = input('Enter the username for CUCM AXL: ')
-password = input('Enter the password for CUCM AXL: ')
+password = getpass('Enter the password for CUCM AXL: ')
 
 # Set the AXL API endpoint URL
-url = f'https://{hostname}:{port}/axl/'
+url = f'https://{hostname}:{port}/logcollectionservice2/services/LogCollectionPortTypeService'
 
 # Set the SOAP action and body for the AXL API call to list the active logs
 soap_action = 'http://www.cisco.com/AXL/API/10.5/FileTrans'
@@ -39,7 +43,7 @@ response = requests.post(url, auth=HTTPBasicAuth(username, password), headers=he
 root = ET.fromstring(response.text)
 
 # Extract the list of active logs from the response
-active_logs = root.findall('.//return/activeLogs/string')
+active_logs = root.findall('.//return/activeLogs/')
 
 # Print the list of active logs and prompt the user to select the logs they want to download
 print('Available log files:')
