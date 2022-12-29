@@ -28,8 +28,6 @@ def list_vms():
         if vm.summary.guest is not None:
             print(f"VMware Tools version: {vm.summary.guest.toolsVersion}")
         print()
-        # Disconnect from the vSphere server
-    Disconnect(si)
 
 
 def list_files():
@@ -71,40 +69,88 @@ def list_files():
         print("Enter the numbers of the files to download, separated by spaces (or enter 'q' to quit):")
         choices = input()
         if choices == 'q':
-            # Parse the user's choices
-            try:
-                choices = [int(c) for c in choices.split()]
-            except ValueError:
-                print("Invalid input. Please try again.")
-                continue
+            break
 
-            # Download the selected files
-            print("Enter the local directory to download files to:")
-            destination = input()
-            for i, file in enumerate(file_list):
-                if i + 1 in choices:
-                    if protocol == 'scp':
-                        scp.get(os.path.join(directory, file), local_path=destination)
-                    elif protocol == 'sftp':
-                        sftp.get(os.path.join(directory, file), local_path=destination)
-                    print(f"{file} downloaded.")
-            print()
+        # Parse the user's choices
+        try:
+            choices = [int(c) for c in choices.split()]
+        except ValueError:
+            print("Invalid input. Please try again.")
+            continue
 
-        while True:
-            # Display the menu
-            print("Menu:")
-            print("1. List virtual machines")
-            print("2. List and download files")
-            print("3. Quit")
+        # Download the selected files
+        print("Enter the local directory to download files to:")
+        destination = input()
+        for i, file in enumerate(file_list):
+            if i + 1 in choices:
+                if protocol == 'scp':
+                    scp.get(os.path.join(directory, file), local_path=destination)
+                elif protocol == 'sftp':
+                    sftp.get(os.path.join(directory, file), local_path=destination)
+                print(f"{file} downloaded.")
+                print()
 
-            # Prompt the user to select an option
-            print("Enter your choice:")
-            choice = input()
 
-            # Perform the selected option
-            if choice == '1':
-                list_vms()
-            elif choice == '2':
-                list_files()
-            elif choice == '3':
-                break
+def generate_tech_support_file():
+    # Connect to the vSphere server
+    print("Enter the vSphere server hostname:")
+    server = input()
+    print("Enter the vSphere server username:")
+    username = input()
+    print("Enter the vSphere server password:")
+    password = input()
+    si = SmartConnect(host=server, user=username, pwd=password)
+
+    # Generate the Tech Support file
+    print("Enter the directory to save the Tech Support file to:")
+    directory = input()
+    file_name = si.content.sessionManager.RequestTechSupport(directory)
+    print(f"Tech Support file saved as {file_name}.")
+
+    # Download the Tech Support file
+    print("Enter the local directory to download the Tech Support file to:")
+    destination = input()
+    print("Enter the protocol to use (scp or sftp):")
+    protocol = input()
+    print("Enter the hostname of the vSphere server:")
+    hostname = input()
+    print("Enter the username to use to connect to the vSphere server:")
+    hostuser = input()
+    print("Enter the password to use to connect to the vSphere server:")
+    hostpassword = input()
+    client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(hostname, username=hostuser, password=hostpassword)
+    if protocol == 'scp':
+        scp = paramiko.SFTPClient.from_transport(client.get_transport())
+    elif protocol == 'sftp':
+        sftp = client.open_sftp()
+    if protocol == 'scp':
+        scp.get(os.path.join(directory, file_name), local_path=destination)
+    elif protocol == 'sftp':
+        sftp.get(os.path.join(directory, file_name), local_path=destination)
+    print(f"Tech Support file downloaded to {destination}.")
+
+
+while True:
+    # Display the menu
+    print("Menu:")
+    print("1. List virtual machines")
+    print("2. List and download files")
+    print("3. Generate and download Tech Support file")
+    print("4. Quit")
+
+    # Prompt the user to select an option
+    print("Enter your choice:")
+    choice = input()
+
+    # Perform the selected option
+    if choice == '1':
+        list_vms()
+    elif choice == '2':
+        list_files()
+    elif choice == '3':
+        generate_tech_support_file()
+    elif choice == '4':
+        break
