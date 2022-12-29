@@ -24,7 +24,7 @@ def list_vms():
     for vm in vm_list:
         print(f"Name: {vm.name}")
         print(f"Description: {vm.summary.config.annotation}")
-        print(f".vmx file location: {vm.summary.config.vmPathName}")
+        print(f"Virtual Machine location: {vm.summary.config.vmPathName}")
         if vm.summary.guest is not None:
             if vm.summary.guest.toolsRunningStatus is not None:
                 print(f"VMware Tools status: {vm.summary.guest.toolsRunningStatus}")
@@ -47,8 +47,7 @@ def list_files():
     hostuser = input()
     print("Enter the password to use to connect to the remote system:")
     hostpassword = input()
-    print("Enter the directory on the remote system to list files from:")
-    directory = input()
+    directory = "/var/log/"
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
