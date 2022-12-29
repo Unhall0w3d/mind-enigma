@@ -13,7 +13,7 @@ def list_vms():
     username = input()
     print("Enter the vSphere server password:")
     password = input()
-    si = SmartConnect(host=server, user=username, pwd=password)
+    si = SmartConnect(host=server, user=username, pwd=password, port=443)
 
     # Retrieve a list of all virtual machines in the vSphere environment
     vm_view = si.content.viewManager.CreateContainerView(si.content.rootFolder, [vim.VirtualMachine], True)
@@ -26,7 +26,14 @@ def list_vms():
         print(f"Description: {vm.summary.config.annotation}")
         print(f".vmx file location: {vm.summary.config.vmPathName}")
         if vm.summary.guest is not None:
-            print(f"VMware Tools version: {vm.summary.guest.toolsVersion}")
+            if vm.summary.guest.toolsRunningStatus is not None:
+                print(f"VMware Tools status: {vm.summary.guest.toolsRunningStatus}")
+            else:
+                print(f"VMware Tools status: Unknown")
+            if vm.summary.guest.toolsVersionStatus2 is not None:
+                print(f"VMware Tools version: {vm.summary.guest.toolsVersionStatus2}")
+            else:
+                print(f"VMware Tools version: Unknown")
         print()
 
 
