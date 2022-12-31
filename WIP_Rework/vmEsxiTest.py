@@ -9,40 +9,56 @@
 
 # to do
 # Test "VM Snapshot" option.
-# Add "Take an ESXI Backup"
-# Check VM Power States, Prompt to Shut Off Gracefully, Prompt for Maint Mode Y
+# Add option to Check VM Power States, Prompt to Shut Off Each VM Gracefully.
+# Add Main Menu option Enable or Disable maintenance mode.
 
 # Import modules
 import os
+import re
+import requests
 import paramiko
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 import time
 from getpass import getpass
+import urllib3
+import ssl
 
 # Define current time
 timestr = time.strftime("%Y%m%d-%H%M%S")
+
+# Disablement of HTTPS Insecure Request error message.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Paramiko ssh connection details
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.load_system_host_keys()
 
+# Ignore SSL certificate warnings
+context = ssl.create_default_context()
+context.check_hostname = False
+context.verify_mode = ssl.CERT_NONE
+
+
 def cred_collect():
     # Collect login details for ESXi
     print("Enter the vSphere server hostname:")
     server = input()
+    print("Enter the Port Forward port number, or 443:")
+    port = input()
     print("Enter the vSphere server username:")
     username = input()
     print("Enter the vSphere server password:")
     password = getpass()
-    return server, username, password
+
+    return server, username, password, port
 
 
-def list_vms(server, username, password):
+def list_vms(server, username, password, port):
     # Connect and collect vm details
     try:
-        si = SmartConnect(host=server, user=username, pwd=password, port=443)
+        si = SmartConnect(host=server, user=username, pwd=password, port=port, sslContext=context)
 
         # Retrieve a list of all virtual machines in the vSphere environment
         vm_view = si.content.viewManager.CreateContainerView(si.content.rootFolder, [vim.VirtualMachine], True)
@@ -100,21 +116,17 @@ def list_vms(server, username, password):
             print(f"vDisks:")
             for device in vm.config.hardware.device:
                 if isinstance(device, vim.vm.device.VirtualDisk):
-                    print(f"{device.deviceInfo.label}: {device.capacityInKB} KB")
+                    print(f"Name: {device.deviceInfo.label}")
+                    print(f"Datastore - {device.backing.datastore}")
+                    print(f"Capacity - {device.capacityInBytes} Bytes")
+                    print(f"Thin Provisioned? - {device.backing.thinProvisioned}")
+                    print(f"vDisk Split? - {device.backing.split}")
+                    print(f"Write Through Enabled? - {device.backing.writeThrough}")
+                    print(f"Disk Mode - {device.backing.diskMode}")
             print("-----------------------")
             i = i + 1
         print()
         Disconnect(si)
-        while True:
-            menuprompt = input("Return to Menu? [Y(es)/Q(uit)]: ")
-            if menuprompt == "Y":
-                print("Returning to menu...")
-                print()
-                break
-            elif menuprompt == "Q":
-                exit()
-            else:
-                print("Invalid choice. Please try again.")
     except vim.fault.InvalidLogin as e:
         print(e)
         print()
@@ -130,7 +142,16 @@ def list_files(server, username, password):
     print("Enter the protocol to use (scp or sftp):")
     protocol = input()
     directory = "/var/log/"
-    ssh.connect(server, username=username, password=password)
+    try:
+        # Connect to the ESXi host using SSH
+        print(f"Connecting to {server} via SSH. Standby.")
+        ssh.connect(hostname=server, username=username, password=password)
+        print(f"Connected to {server}.")
+    except paramiko.ssh_exception.AuthenticationException:
+        print(f"Failed to connect to {server}. Authentication failed.")
+        print("Check the credentials entered when the script was started.")
+        print("Exiting...")
+        exit()
     if protocol == 'scp':
         scp = paramiko.SFTPClient.from_transport(ssh.get_transport())
     elif protocol == 'sftp':
@@ -193,8 +214,16 @@ def list_files(server, username, password):
 
 def esxihc(server, username, password):
     print(f"Gathering Health Check Output From {server}. Please standby.")
-    # Connect to the ESXi host
-    ssh.connect(server, username=username, password=password)
+    try:
+        # Connect to the ESXi host using SSH
+        print(f"Connecting to {server} via SSH. Standby.")
+        ssh.connect(hostname=server, username=username, password=password)
+        print(f"Connected to {server}.")
+    except paramiko.ssh_exception.AuthenticationException:
+        print(f"Failed to connect to {server}. Authentication failed.")
+        print("Check the credentials entered when the script was started.")
+        print("Exiting...")
+        exit()
 
     # Open the file in append mode
     with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + server + '_'
@@ -212,7 +241,7 @@ def esxihc(server, username, password):
                         'esxcli storage core device list', 'esxcli system boot device get',
                         'esxcfg-advcfg -j iovDisableIR', 'cat /etc/chkconfig.db',
                         'vmkload_mod -s megaraid_sas | grep Version', 'vmkload_mod -s igb | grep Version',
-                        'vmkload_mod -s fnic', 'vmkload_mod -s enic']:
+                        'vmkload_mod -s fnic', 'vmkload_mod -s enic', 'vim-cmd hostsvc/hostsummary']:
             stdin, stdout, stderr = ssh.exec_command(command)
             output = stdout.read().decode('utf-8')
             print(f"Gathering output from command {command}...")
@@ -225,10 +254,10 @@ def esxihc(server, username, password):
     print(f"To run another Health Check, please restart the script.")
 
 
-def vmsnapshot(server, username, password):
+def vmsnapshot(server, username, password, port):
     while True:
         # Connect to the ESXi host
-        si = SmartConnect(host=server, user=username, pwd=password, port=443)
+        si = SmartConnect(host=server, user=username, pwd=password, port=port, sslContext=context)
 
         # Get the list of virtual machines on the host
         vm_list = si.content.viewManager.CreateContainerView(si.content.rootFolder,
@@ -244,7 +273,7 @@ def vmsnapshot(server, username, password):
 
         # Perform a snapshot on the selected virtual machine
         snapshot_task = selected_vm.CreateSnapshot_Task(name="Snapshot", description="Snapshot of VM", memory=False,
-                                                    quiesce=False)
+                                                        quiesce=False)
         snapshot_task.wait()
         print(f"Snapshot complete for Virtual Machine {selected_vm}!")
 
@@ -257,33 +286,92 @@ def vmsnapshot(server, username, password):
     # Disconnect from the ESXi host
     Disconnect(si)
 
+
+def configbackup(server, username, password):
+    try:
+        # Connect to the ESXi host using SSH
+        print(f"Connecting to {server} via SSH. Standby.")
+        ssh.connect(hostname=server, username=username, password=password)
+        print(f"Connected to {server}.")
+    except paramiko.ssh_exception.AuthenticationException:
+        print(f"Failed to connect to {server}. Authentication failed.")
+        print("Check the credentials entered when the script was started.")
+        print("Exiting...")
+        exit()
+
+    # Issue the "vim-cmd hostsvc/firmware/sync_config" command
+    print("Issuing Config Sync...")
+    stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/sync_config')
+    print("Config Synced!")
+
+    # Issue the "vim-cmd hostsvc/firmware/backup_config" command
+    print("Issuing Config Backup...")
+    stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/backup_config')
+    print("Config Backup Completed!")
+    output = stdout.read().decode()
+
+    # Find the URL in the output
+    url_pattern = r'http://[^/]*/downloads/[^\s]+'
+    url_match = re.search(url_pattern, output)
+
+    if url_match is None:
+        print("URL Match did not work.")
+        print(f"Search Pattern: {url_pattern}")
+        print(f"Output Searched: {output}")
+        print(f"RE Search Result: {url_match}")
+        print("Please provide the above output to the script dev to review and address.")
+        quit()
+    elif url_match:
+        # Extract the URL
+        url = url_match.group(0)
+
+        # Perform the substitution to replace "*" with the hostname
+        url = url.replace('*', server)
+
+        # Download the file at the URL
+        print(f"Downloading configBundle from {server}...")
+        r = requests.get(url, verify=False)
+
+        # Save the file to the current directory
+        print("Writing file locally...")
+        with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + server + '_'
+                                                        + timestr + '_' + 'configBundle.tgz'), 'wb+') as f:
+            f.write(r.content)
+
+    # Close the SSH connection
+    print(f"Disconnecting from {server}")
+    ssh.close()
+
+
 # Main function
 def main():
-    server, username, password = cred_collect()
+    server, username, password, port = cred_collect()
     while True:
         # Display the menu
-        print()
         print("Select an option:")
         print("-----------------")
-        print("1. List Virtual Machines")
-        print("2. List And Download Files")
-        print("3. Run ESXi HealthCheck")
+        print("1. List VMs & Details")
+        print("2. List And Download Log Files")
+        print("3. Collect ESXi HealthCheck")
         print("4. Perform a VM Snapshot (UNTESTED)")
-        print("5. Quit")
+        print("5. Perform an ESXi Config Backup")
+        print("6. Quit")
         print("-----------------")
         print()
         choice = input("Choice: ")
 
         # Call the selected function
         if choice == '1':
-            list_vms(server, username, password)
+            list_vms(server, username, password, port)
         elif choice == '2':
             list_files(server, username, password)
         elif choice == '3':
             esxihc(server, username, password)
         elif choice == '4':
-            vmsnapshot(server, username, password)
+            vmsnapshot(server, username, password, port)
         elif choice == '5':
+            configbackup(server, username, password)
+        elif choice == '6':
             exit()
         else:
             print("Invalid choice. Please try again.")
