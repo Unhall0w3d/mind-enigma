@@ -9,9 +9,6 @@
 
 # to do
 # Test VM Snapshot "API" option. Failed in testing due to insufficient licensing on ESXi.
-# Test VM Snapshot "CLI" option. Need a lab ESXi to test this on.
-# Test Power On/Off VM. Need a lab ESXi to test this on.
-# Test Enable/Disable Maintenance Mode. Need a lab ESXi to test this on.
 
 # Import modules
 import os
@@ -53,14 +50,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class ESXi:
     def __init__(self):
         # Collect login details for ESXi
-        print("Enter the vSphere server hostname:")
-        self.server = input()
-        print("Enter the Port Forward port number, or 443:")
-        self.port = int(input())
-        print("Enter the vSphere server username:")
-        self.username = input()
-        print("Enter the vSphere server password:")
-        self.password = getpass()
+        self.server = input("Enter the vSphere server hostname: ")
+        self.port = int(input("Enter the Port Forward port number, or 443: "))
+        self.username = input("Enter the vSphere server username: ")
+        self.password = getpass("Enter the vSphere server password: ")
+        print()
 
     # Function to list virtual machines and useful details
     def list_vms(self):
@@ -161,7 +155,7 @@ class ESXi:
     def list_files(self):
         # Connect to the remote system using SCP or SFTP
         print("Enter the protocol to use (scp or sftp):")
-        protocol = input()
+        protocol = input().lower()
         directory = "/var/log/"
         try:
             # Connect to the ESXi host using SSH
@@ -172,6 +166,10 @@ class ESXi:
             print(f"Failed to connect to {self.server}. Authentication failed.")
             print("Check the credentials entered when the script was started.")
             print("Exiting...")
+            exit()
+        except TimeoutError:
+            print(f"Failed to connect to host {self.server} due to Connection Timeout.")
+            print(f"Please ensure that SSH is enabled on host {self.server} and try again.")
             exit()
         if protocol == 'scp':
             scp = paramiko.SFTPClient.from_transport(ssh.get_transport())
@@ -193,22 +191,18 @@ class ESXi:
 
         # Prompt the user to select the files to download
         while True:
-            print("Enter the numbers of the files to download, separated by spaces (or enter 'q' to quit):")
-            choices = input()
-            try:
-                verify = input(f"Are you sure you want files {choices}? (Y/n/q):").lower
-                if verify == "y":
-                    continue
-                elif verify == "n":
-                    choices = input("Please re-enter the numbers of the files to download.")
-                    continue
-                elif verify == "q":
-                    break
-            except Exception as a:
-                print(a)
-                exit()
-            if choices == 'q':
+            choices = input("Enter the numbers of the files to download, "
+                            "separated by spaces (or enter 'q' to quit): ").lower()
+            if choices == "q":
                 break
+            else:
+                try:
+                    verify = input(f"Are you sure you want files {choices}? (Y/n):").lower()
+                    if verify == "n":
+                        choices = input("Please re-enter the numbers of the files to download.")
+                except Exception as a:
+                    print(a)
+                    exit()
 
             # Parse the user's choices
             try:
@@ -298,7 +292,7 @@ class ESXi:
             snapshot_task.wait()
             print(f"Snapshot complete for Virtual Machine {selected_vm}!")
 
-            doagain = input("Do you want to take another snapshot? (y/N)").lower
+            doagain = input("Do you want to take another snapshot? (y/N)").lower()
             if doagain == 'y':
                 continue
             else:
@@ -312,7 +306,7 @@ class ESXi:
         try:
             # Connect to the ESXi host using SSH
             print(f"Connecting to {self.server} via SSH. Standby.")
-            ssh.connect()
+            ssh.connect(hostname=self.server, username=self.username, password=self.password)
             print(f"Connected to {self.server}.")
         except paramiko.ssh_exception.AuthenticationException:
             print(f"Failed to connect to {self.server}. Authentication failed.")
@@ -320,16 +314,16 @@ class ESXi:
             print("Exiting...")
             exit()
 
-            # Issue the "vim-cmd hostsvc/firmware/sync_config" command
-            print("Issuing Config Sync...")
-            stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/sync_config')
-            print("Config Synced!")
+        # Issue the "vim-cmd hostsvc/firmware/sync_config" command
+        print("Issuing Config Sync...")
+        stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/sync_config')
+        print("Config Synced!")
 
-            # Issue the "vim-cmd hostsvc/firmware/backup_config" command
-            print("Issuing Config Backup...")
-            stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/backup_config')
-            print("Config Backup Completed!")
-            output = stdout.read().decode()
+        # Issue the "vim-cmd hostsvc/firmware/backup_config" command
+        print("Issuing Config Backup...")
+        stdin, stdout, stderr = ssh.exec_command('vim-cmd hostsvc/firmware/backup_config')
+        print("Config Backup Completed!")
+        output = stdout.read().decode()
 
         # Find the URL in the output
         url_pattern = r'http://[^/]*/downloads/[^\s]+'
@@ -369,7 +363,9 @@ class ESXi:
             # Connect to the ESXi host using SSH
             print(f"Connecting to {self.server} via SSH. Standby.")
             ssh.connect(hostname=self.server, username=self.username, password=self.password)
+            time.sleep(.5)
             print(f"Connected to {self.server}.")
+            print()
         except paramiko.ssh_exception.AuthenticationException:
             print(f"Failed to connect to {self.server}. Authentication failed.")
             print("Check the credentials entered when the script was started.")
@@ -379,7 +375,6 @@ class ESXi:
         # Gather VMs and IDs
         stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/getallvms")
         vms = stdout.readlines()
-        print("ID\tName")
         for vm in vms:
             print(vm)
 
@@ -387,13 +382,13 @@ class ESXi:
             # Prompt the user to select a VM
             vm_id = input("Enter the ID of the VM to snapshot: ")
             snapshot_name = input("Enter the name of the VM snapshot: ")
-            verify = input(f"Are you sure you want to snapshot VM {vm_id}?").lower()
+            verify = input(f"Are you sure you want to snapshot VM {vm_id}? (y/n): ").lower()
             if verify == 'y':
                 # Run snapshot against relevant VM
                 cmd = "vim-cmd vmsvc/snapshot.create %s %s" % (vm_id, snapshot_name)
                 stdin, stdout, stderr = ssh.exec_command(cmd)
-                print(stdout.read())
-                verify = input("Would you like to perform another snapshot?").lower()
+                print(stdout.read().decode('utf-8'))
+                verify = input("Would you like to perform another snapshot? (y/n): ").lower()
                 if verify == 'y':
                     continue
                 else:
@@ -408,8 +403,10 @@ class ESXi:
         try:
             # Connect to the ESXi host using SSH
             print(f"Connecting to {self.server} via SSH. Standby.")
+            print()
             ssh.connect(hostname=self.server, username=self.username, password=self.password)
             print(f"Connected to {self.server}.")
+            print()
         except paramiko.ssh_exception.AuthenticationException:
             print(f"Failed to connect to {self.server}. Authentication failed.")
             print("Check the credentials entered when the script was started.")
@@ -432,7 +429,7 @@ class ESXi:
             fields = line.split()
 
             # Check if the line contains a virtual machine
-            if len(fields) == 2:
+            if len(fields) > 0:
                 # Get the virtual machine ID and name
                 vm_id = fields[0]
                 vm_name = fields[1]
@@ -440,62 +437,60 @@ class ESXi:
                 # Get the power state of the virtual machine
                 stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/power.getstate {}".format(vm_id))
                 power_state = stdout.read().strip()
+                power_state = power_state.decode('utf-8')
+                power_state = power_state[23:]
 
                 # Add the virtual machine and its power state to the list
                 vm_list.append((vm_id, vm_name, power_state))
         return vm_list
 
     def vmchoice(self, vm_list):
+        vm_list.pop(0)
         print(f"Current VM Status on {self.server}:")
+        print("------------------------------------")
         for vm in vm_list:
             vm_id, vm_name, power_state = vm
-            print("ID: {} Name: {} Power state: {}".format(vm_id, vm_name, power_state))
-            while True:
-                onoroff = input("Do you want to power a VM ON, or OFF? (ON/OFF): ").lower
-                if onoroff == "on":
-                    vm_id = input("Enter the ID of the virtual machine you want to power on: ")
-                    return vm_id, onoroff
-                elif onoroff == "off":
-                    vm_id = input("Enter the ID of the virtual machine you want to power off: ")
-                    proceed = input(f"Are you sure you want to power off VM {vm_id}? (y/n): ").lower
-                    if proceed == "y":
-                        return vm_id, onoroff
-                    else:
-                        vm_id == "menu"
-                        onoroff == "menu"
-                        return vm_id, onoroff
+            print("ID: [{}] Name: [{}] Power state: [{}]".format(vm_id, vm_name, power_state))
+        while True:
+            onoroff = input("Do you want to power a VM ON, or OFF? (ON/OFF): ").lower()
+            print()
+            if onoroff == "on":
+                id = input("Enter the ID of the virtual machine you want to power on: ")
+                proceed = input(f"Are you sure you want to power on VM {id}? (y/n): ").lower()
+                if proceed == "n":
+                    print("Exiting. Please relaunch the script if needed.")
+                    exit()
+                else:
+                    return id, onoroff
+            elif onoroff == "off":
+                id = input("Enter the ID of the virtual machine you want to power off: ")
+                proceed = input(f"Are you sure you want to power off VM {id}? (y/n): ").lower()
+                if proceed == "n":
+                    print("Exiting. Please relaunch the script if needed.")
+                    exit()
+                else:
+                    return id, onoroff
 
     # Function to power off a virtual machine gracefully
-    def power_onoff_vm(self, vm_id, onoroff):
+    def power_onoff_vm(self, id, onoroff):
         if onoroff == "on":
             # Execute the "vim-cmd vmsvc/power.shutdown" command to power on the virtual machine gracefully
-            stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/power.on {}".format(vm_id))
+            stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/power.on {}".format(id))
 
             # Read the command output
-            output = stdout.read().strip()
-
-            # Check if the virtual machine was powered on successfully
-            if output == "True":
-                print("Virtual machine was powered on successfully.")
-            else:
-                print("Failed to power on virtual machine.")
-                print("Please use the Admin Webpage instead and report issues and error messages to the script dev.")
-            time.sleep(5)
+            output = stdout.readlines()
+            print(f"{self.server} response: {output[0]}")
+            print()
+            print(f"Power On issued for VM {id} on {self.server}.")
+            print("Checking VM power states to verify success...")
+            time.sleep(30)
 
         elif onoroff == "off":
             # Execute the "vim-cmd vmsvc/power.shutdown" command to power off the virtual machine gracefully
-            stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/power.shutdown {}".format(vm_id))
-
-            # Read the command output
-            output = stdout.read().strip()
-
-            # Check if the virtual machine was powered off successfully
-            if output == "True":
-                print("Virtual machine was powered off successfully.")
-            else:
-                print("Failed to power off virtual machine.")
-                print("Please use the Admin Webpage instead and report issues and error messages to the script dev.")
-            time.sleep(5)
+            stdin, stdout, stderr = ssh.exec_command("vim-cmd vmsvc/power.shutdown {}".format(id))
+            print(f"Power Off issued for VM {id} on {self.server}.")
+            print("Checking VM power states to verify success...")
+            time.sleep(60)
 
     # Quick function to verify VM power state
     def vmpowercheck(self, vm_list):
@@ -511,35 +506,40 @@ class ESXi:
 
     # Function to check status of maint mode, enable/disable, and recheck status
     def maintmode(self):
-        print(f"Attempting to connect to {self.server} on port {self.port}...")
-        si = SmartConnect(host=self.server, user=self.username, pwd=self.password, port=self.port,
-                              sslContext=context)
+        try:
+            # Connect to the ESXi host using SSH
+            print(f"Connecting to {self.server} via SSH. Standby.")
+            ssh.connect(hostname=self.server, username=self.username, password=self.password)
+            time.sleep(.5)
+            print(f"Connected to {self.server}.")
+            print()
+        except paramiko.ssh_exception.AuthenticationException:
+            print(f"Failed to connect to {self.server}. Authentication failed.")
+            print("Check the credentials entered when the script was started.")
+            print("Exiting...")
+            exit()
 
-        # Get the Maintenance Mode status
-        host_system = si.content.rootFolder.childEntity[0]
-        if host_system.inMaintenanceMode:
-            print(f"The host {self.server} is currently in Maintenance Mode.")
-        else:
-            print(f"The host {self.server} is not in Maintenance Mode.")
+        # Run command to check maintenance mode status
+        stdin, stdout, stderr = ssh.exec_command("esxcli system maintenanceMode get")
+        status = stdout.readlines()[0].strip()
 
-        # Prompt the user to enable or disable Maintenance Mode
-        response = input("Would you like to enable or disable Maintenance Mode? (e/d): ")
-        if response.lower() == 'e':
-            host_system.EnterMaintenanceMode_Task(timeout=0)
-            print('Maintenance Mode enabled.')
-        else:
-            host_system.ExitMaintenanceMode_Task(timeout=0)
-            print('Maintenance Mode disabled.')
+        # Print maintenance mode status and prompt user to enable or disable
+        if "Enabled" in status:
+            print("Maintenance mode is currently enabled")
+            action = input("Do you want to disable maintenance mode? (y/n) ")
+            if action == "y":
+                ssh.exec_command("esxcli system maintenanceMode set --enable=false")
+                print("Maintenance mode disabled")
+        elif "Disabled" in status:
+            print("Maintenance mode is currently disabled")
+            action = input("Do you want to enable maintenance mode? (y/n) ")
+            if action == "y":
+                ssh.exec_command("esxcli system maintenanceMode set --enable=true")
+                print("Maintenance mode enabled")
 
-        # Check the Maintenance Mode status again
-        if host_system.inMaintenanceMode:
-            print(f"The host {self.server} is currently in Maintenance Mode.")
-        else:
-            print(f"The host {self.server} is not in Maintenance Mode.")
-        print("Please manually verify maintenance mode is enabled as needed.")
-        print("Returning to menu...")
-        print()
-        time.sleep(3)
+        # Close the connection
+        ssh.close()
+
 
     # Main function
     def main(self):
@@ -551,10 +551,10 @@ class ESXi:
             print("2. List And Download Log Files")
             print("3. Collect ESXi HealthCheck")
             print("4. Perform a VM Snapshot via API (Testing)")
-            print("5. Perform a VM Snapshot via CLI (Testing)")
+            print("5. Perform a VM Snapshot via CLI")
             print("6. Perform an ESXi Config Backup")
-            print("7. Power Off/On VM (Testing)")
-            print("8. Enable/Disable Maintenance Mode (Testing)")
+            print("7. Power Off/On VM")
+            print("8. Enable/Disable Maintenance Mode")
             print("9. Quit")
             print("-----------------")
             print()
@@ -574,11 +574,12 @@ class ESXi:
             elif choice == '6':
                 ESXi.configbackup()
             elif choice == '7':
+                print("Run Menu Opt #1. Check output to confirm VM Tools is installed before proceeding.")
+                print("If using open-vm-tools, output will show guestToolsUnmanaged. Proceed.")
                 vm_list = ESXi.getvms()
-                vm_id, onoroff = ESXi.vmchoice(vm_list)
-                if vm_id != "menu":
-                    ESXi.power_onoff_vm(vm_id, onoroff)
-                    ESXi.vmpowercheck(vm_list)
+                id, onoroff = ESXi.vmchoice(vm_list)
+                ESXi.power_onoff_vm(id, onoroff)
+                ESXi.vmpowercheck(vm_list)
             elif choice == '8':
                 ESXi.maintmode()
             elif choice == '9':
