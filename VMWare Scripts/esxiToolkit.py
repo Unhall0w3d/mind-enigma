@@ -8,8 +8,10 @@
 #####################################
 
 # to do
-# Test "VM Snapshot" option. Failed in testing due to insufficient licensing on ESXi.
-# Add Main Menu option Enable or Disable maintenance mode.
+# Test VM Snapshot "API" option. Failed in testing due to insufficient licensing on ESXi.
+# Test VM Snapshot "CLI" option. Need a lab ESXi to test this on.
+# Test Power On/Off VM. Need a lab ESXi to test this on.
+# Test Enable/Disable Maintenance Mode. Need a lab ESXi to test this on.
 
 # Import modules
 import os
