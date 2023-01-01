@@ -14,15 +14,15 @@
 # Import modules
 import os
 import re
-import requests
-import paramiko
-from pyVim.connect import SmartConnect, Disconnect
-from pyVmomi import vim
+import ssl
 import time
 from getpass import getpass
-import urllib3
-import ssl
 
+import paramiko
+import requests
+import urllib3
+from pyVim.connect import SmartConnect, Disconnect
+from pyVmomi import vim
 
 # Define current time
 timestr = time.strftime("%d-%m-%Y_%H-%M-%S")
