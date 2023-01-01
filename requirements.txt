@@ -1,0 +1,5 @@
+requests~=2.28.1
+paramiko~=2.11.0
+urllib3~=1.26.11
+pyvim~=3.0.3
+pyvmomi~=8.0.0.1.1
