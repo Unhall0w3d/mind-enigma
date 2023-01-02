@@ -60,11 +60,11 @@ class NETCONNECT:
         self.failed_login = 0
         self.max_attempts = 2
 
-        # Do SmartConnect
-        self.si = NETCONNECT.smartconnect(self)
-        self.sshconn = NETCONNECT.sshconn(self)
+        # Connect on port 22 & 443
+        self.si = self.httpsconn()
+        self.sshconn = self.sshconn()
 
-    def smartconnect(self):
+    def httpsconn(self):
         try:
             print(f"Connecting to {self.server} via HTTPS/{self.port}...")
             si = SmartConnect(host=self.server, user=self.username, pwd=self.password, port=self.port,
@@ -108,6 +108,56 @@ class NETCONNECT:
 
 
 class ESXi:
+    def __init__(self):
+        while True:
+            # Display the menu
+            print()
+            print()
+            print("Select an option:")
+            print("-----------------")
+            print("1. List VMs & Details")
+            print("2. List And Download Log Files")
+            print("3. Collect ESXi HealthCheck")
+            print("4. Perform a VM Snapshot via API (Testing)")
+            print("5. Perform a VM Snapshot via CLI")
+            print("6. Perform an ESXi Config Backup")
+            print("7. Power Off/On VM")
+            print("8. Enable/Disable Maintenance Mode")
+            print("9. Quit")
+            print("-----------------")
+            print()
+            choice = input("Choice: ")
+
+            # Call the selected function
+            if choice == '1':
+                self.list_vms()
+            elif choice == '2':
+                self.list_files()
+            elif choice == '3':
+                self.esxihc()
+            elif choice == '4':
+                self.vmsnapshot()
+            elif choice == '5':
+                self.clisnapshot()
+            elif choice == '6':
+                self.configbackup()
+            elif choice == '7':
+                print("Run Menu Opt #1. Check output to confirm VM Tools is installed before proceeding.")
+                print("If using open-vm-tools, output will show guestToolsUnmanaged. Proceed.")
+                vm_list = self.getvms()
+                id, onoroff = self.vmchoice(vm_list)
+                self.power_onoff_vm(id, onoroff)
+                self.vmpowercheck(vm_list)
+            elif choice == '8':
+                self.maintmode()
+            elif choice == '9':
+                NETCONNECT.ssh.close()
+                Disconnect(NETCONNECT.si)
+                exit()
+            else:
+                print("Invalid choice. Please try again.")
+            print()
+
     # Function to list virtual machines and useful details
     def list_vms(self):
         # Retrieve a list of all virtual machines in the vSphere environment
@@ -486,59 +536,7 @@ class ESXi:
                 print("Maintenance mode enabled")
 
 
-# Main function
-def main():
-    while True:
-        # Display the menu
-        print()
-        print()
-        print("Select an option:")
-        print("-----------------")
-        print("1. List VMs & Details")
-        print("2. List And Download Log Files")
-        print("3. Collect ESXi HealthCheck")
-        print("4. Perform a VM Snapshot via API (Testing)")
-        print("5. Perform a VM Snapshot via CLI")
-        print("6. Perform an ESXi Config Backup")
-        print("7. Power Off/On VM")
-        print("8. Enable/Disable Maintenance Mode")
-        print("9. Quit")
-        print("-----------------")
-        print()
-        choice = input("Choice: ")
-
-        # Call the selected function
-        if choice == '1':
-            ESXi.list_vms()
-        elif choice == '2':
-            ESXi.list_files()
-        elif choice == '3':
-            ESXi.esxihc()
-        elif choice == '4':
-            ESXi.vmsnapshot()
-        elif choice == '5':
-            ESXi.clisnapshot()
-        elif choice == '6':
-            ESXi.configbackup()
-        elif choice == '7':
-            print("Run Menu Opt #1. Check output to confirm VM Tools is installed before proceeding.")
-            print("If using open-vm-tools, output will show guestToolsUnmanaged. Proceed.")
-            vm_list = ESXi.getvms()
-            id, onoroff = ESXi.vmchoice(vm_list)
-            ESXi.power_onoff_vm(id, onoroff)
-            ESXi.vmpowercheck(vm_list)
-        elif choice == '8':
-            ESXi.maintmode()
-        elif choice == '9':
-            NETCONNECT.ssh.close()
-            Disconnect(NETCONNECT.si)
-            exit()
-        else:
-            print("Invalid choice. Please try again.")
-        print()
-
-
 # Run the main function
 if __name__ == "__main__":
-    netconnect = NETCONNECT()
-    main()
+    NETCONNECT()
+    ESXi()
