@@ -27,7 +27,7 @@ from pyVmomi import vim
 timestr = time.strftime("%d-%m-%Y_%H-%M-%S")
 
 
-class netconnect:
+class NETCONNECT:
     def __init__(self):
         # SSL
         # Ignore SSL certificate warnings
@@ -61,10 +61,10 @@ class netconnect:
         self.max_attempts = 2
 
         # Do SmartConnect
-        self.si = netconnect.SmartConnect(self)
-        self.sshconn = netconnect.sshconn(self)
+        self.si = NETCONNECT.smartconnect(self)
+        self.sshconn = NETCONNECT.sshconn(self)
 
-    def SmartConnect(self):
+    def smartconnect(self):
         try:
             print(f"Connecting to {self.server} via HTTPS/{self.port}...")
             si = SmartConnect(host=self.server, user=self.username, pwd=self.password, port=self.port,
@@ -93,17 +93,17 @@ class netconnect:
             print(f"Failed to connect to {self.server}. Authentication failed.")
             print("Check the credentials entered when the script was started.")
             print("Exiting...")
-            Disconnect(netconnect.si)
+            Disconnect(NETCONNECT.si)
             exit()
         except TimeoutError:
             print(f"Failed to connect to host {self.server} due to Connection Timeout.")
             print(f"Please ensure that {self.server} is reachable.")
-            Disconnect(netconnect.si)
+            Disconnect(NETCONNECT.si)
             exit()
         except paramiko.ssh_exception.NoValidConnectionsError as f:
             print(f"Failed to connect to {self.server} due to {f}.")
             print(f"Please ensure the TSM/TSM-SSH Services are started on {self.server}.")
-            Disconnect(netconnect.si)
+            Disconnect(NETCONNECT.si)
             exit()
 
 
@@ -111,16 +111,16 @@ class ESXi:
     # Function to list virtual machines and useful details
     def list_vms(self):
         # Retrieve a list of all virtual machines in the vSphere environment
-        vm_view = netconnect.si.content.viewManager.CreateContainerView(netconnect.si.content.rootFolder,
+        vm_view = NETCONNECT.si.content.viewManager.CreateContainerView(NETCONNECT.si.content.rootFolder,
                                                                         [vim.VirtualMachine],
                                                                         True)
         vm_list = vm_view.view
         vm_view.Destroy()
 
         # Print information about each virtual machine
-        print(f"Performing data pull for device {netconnect.server}. Please wait...")
+        print(f"Performing data pull for device {NETCONNECT.server}. Please wait...")
         with open(os.path.join(os.path.expanduser('~'),
-                               'Downloads/' + netconnect.server + '_' + timestr + '_' + 'VMDetails.txt'),
+                               'Downloads/' + NETCONNECT.server + '_' + timestr + '_' + 'VMDetails.txt'),
                   'w+') as f:
             for vm in vm_list:
                 f.write(f"--- VM Report for {vm.name} ---\n")
@@ -183,7 +183,7 @@ class ESXi:
                         f.write(f"Write Through Enabled? - {device.backing.writeThrough}\n")
                         f.write(f"Disk Mode - {device.backing.diskMode}\n")
                 f.write("-----------------------\n\n\n")
-            print(f"Data pull has been completed for device {netconnect.server}.")
+            print(f"Data pull has been completed for device {NETCONNECT.server}.")
             print(f"Output can be found in {f.name}.")
         time.sleep(4)
         print()
@@ -200,10 +200,10 @@ class ESXi:
 
         # Set up SCP or SFTP connection
         if protocol == 'scp':
-            scp = paramiko.SFTPClient.from_transport(netconnect.ssh.get_transport())
+            scp = paramiko.SFTPClient.from_transport(NETCONNECT.ssh.get_transport())
             file_list = scp.listdir(directory)
         elif protocol == 'sftp':
-            sftp = netconnect.ssh.open_sftp()
+            sftp = NETCONNECT.ssh.open_sftp()
             file_list = sftp.listdir(directory)
 
         # Print the list of files
@@ -225,7 +225,7 @@ class ESXi:
                         choices = input("Please re-enter the numbers of the files to download.")
                 except Exception as a:
                     print(a)
-                    netconnect.ssh.close()
+                    NETCONNECT.ssh.close()
                     exit()
 
             # Parse the user's choices
@@ -238,7 +238,7 @@ class ESXi:
             # Download the selected files
             for i, file in enumerate(file_list):
                 fname = str(file)
-                destination = os.path.join(os.path.expanduser('~'), 'Downloads/' + netconnect.server + '_'
+                destination = os.path.join(os.path.expanduser('~'), 'Downloads/' + NETCONNECT.server + '_'
                                            + timestr + '_' + fname)
                 if i + 1 in choices:
                     if protocol == 'scp':
@@ -251,12 +251,12 @@ class ESXi:
 
     # Function to perform health check data collection
     def esxihc(self):
-        print(f"Gathering Health Check Output From {netconnect.server}. Please standby.")
+        print(f"Gathering Health Check Output From {NETCONNECT.server}. Please standby.")
 
         # Open the file in append mode
-        with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + netconnect.server + '_'
+        with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + NETCONNECT.server + '_'
                                                         + timestr + '_' + 'HealthCheck.txt'), 'a') as f:
-            f.write(f"--- {netconnect.server} ESXi Health Checks @ {timestr} ---\n\n")
+            f.write(f"--- {NETCONNECT.server} ESXi Health Checks @ {timestr} ---\n\n")
             f.write("\n")
             # Execute each command and write the output to the file
             for command in ['esxcli system hostname get', 'esxcli system version get', 'vim-cmd vimsvc/license --show',
@@ -270,7 +270,7 @@ class ESXi:
                             'esxcfg-advcfg -j iovDisableIR', 'cat /etc/chkconfig.db',
                             'vmkload_mod -s megaraid_sas | grep Version', 'vmkload_mod -s igb | grep Version',
                             'vmkload_mod -s fnic', 'vmkload_mod -s enic', 'vim-cmd hostsvc/hostsummary']:
-                stdin, stdout, stderr = netconnect.ssh.exec_command(command)
+                stdin, stdout, stderr = NETCONNECT.ssh.exec_command(command)
                 output = stdout.read().decode('utf-8')
                 print(f"Gathering output from command {command}...")
                 f.write(f"- {command} -\n")
@@ -281,7 +281,7 @@ class ESXi:
 
     def vmsnapshot(self):
         while True:
-            vm_list = netconnect.si.content.viewManager.CreateContainerView(netconnect.si.content.rootFolder,
+            vm_list = NETCONNECT.si.content.viewManager.CreateContainerView(NETCONNECT.si.content.rootFolder,
                                                                             [vim.VirtualMachine], True)
             vm_names = [vm.name for vm in vm_list.view]
 
@@ -308,12 +308,12 @@ class ESXi:
     def configbackup(self):
         # Issue the "vim-cmd hostsvc/firmware/sync_config" command
         print("Issuing Config Sync...")
-        stdin, stdout, stderr = netconnect.ssh.exec_command('vim-cmd hostsvc/firmware/sync_config')
+        stdin, stdout, stderr = NETCONNECT.ssh.exec_command('vim-cmd hostsvc/firmware/sync_config')
         print("Config Synced!")
 
         # Issue the "vim-cmd hostsvc/firmware/backup_config" command
         print("Issuing Config Backup...")
-        stdin, stdout, stderr = netconnect.ssh.exec_command('vim-cmd hostsvc/firmware/backup_config')
+        stdin, stdout, stderr = NETCONNECT.ssh.exec_command('vim-cmd hostsvc/firmware/backup_config')
         print("Config Backup Completed!")
         output = stdout.read().decode()
 
@@ -327,30 +327,30 @@ class ESXi:
             print(f"Output Searched: {output}")
             print(f"RE Search Result: {url_match}")
             print("Please provide the above output to the script dev to review and address.")
-            netconnect.ssh.close()
-            Disconnect(netconnect.si)
+            NETCONNECT.ssh.close()
+            Disconnect(NETCONNECT.si)
             quit()
         elif url_match:
             # Extract the URL
             url = url_match.group(0)
 
             # Perform the substitution to replace "*" with the hostname
-            url = url.replace('*', netconnect.server)
+            url = url.replace('*', NETCONNECT.server)
 
             # Download the file at the URL
-            print(f"Downloading configBundle from {netconnect.server}...")
+            print(f"Downloading configBundle from {NETCONNECT.server}...")
             r = requests.get(url, verify=False)
 
             # Save the file to the current directory
             print("Writing file locally...")
-            with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + netconnect.server + '_'
+            with open(os.path.join(os.path.expanduser('~'), 'Downloads/' + NETCONNECT.server + '_'
                                                             + timestr + '_' + 'configBundle.tgz'), 'wb+') as f:
                 f.write(r.content)
 
     # Function to perform a VM snapshot using CLI/SSH
     def clisnapshot(self):
         # Gather VMs and IDs
-        stdin, stdout, stderr = netconnect.ssh.exec_command("vim-cmd vmsvc/getallvms")
+        stdin, stdout, stderr = NETCONNECT.ssh.exec_command("vim-cmd vmsvc/getallvms")
         vms = stdout.readlines()
         for vm in vms:
             print(vm)
@@ -363,7 +363,7 @@ class ESXi:
             if verify == 'y':
                 # Run snapshot against relevant VM
                 cmd = "vim-cmd vmsvc/snapshot.create %s %s" % (vm_id, snapshot_name)
-                stdin, stdout, stderr = netconnect.ssh.exec_command(cmd)
+                stdin, stdout, stderr = NETCONNECT.ssh.exec_command(cmd)
                 print(stdout.read().decode('utf-8'))
                 verify = input("Would you like to perform another snapshot? (y/n): ").lower()
                 if verify == 'y':
@@ -375,7 +375,7 @@ class ESXi:
 
     def getvms(self):
         # Execute the "vim-cmd vmsvc/getallvms" command to get a list of all virtual machines and their power state
-        stdin, stdout, stderr = netconnect.ssh.exec_command("vim-cmd vmsvc/getallvms")
+        stdin, stdout, stderr = NETCONNECT.ssh.exec_command("vim-cmd vmsvc/getallvms")
 
         # Read the command output
         output = stdout.readlines()
@@ -396,7 +396,7 @@ class ESXi:
                 vm_name = fields[1]
 
                 # Get the power state of the virtual machine
-                stdin, stdout, stderr = netconnect.ssh.exec_command("vim-cmd vmsvc/power.getstate {}".format(vm_id))
+                stdin, stdout, stderr = NETCONNECT.ssh.exec_command("vim-cmd vmsvc/power.getstate {}".format(vm_id))
                 power_state = stdout.read().strip()
                 power_state = power_state.decode('utf-8')
                 power_state = power_state[23:]
@@ -407,7 +407,7 @@ class ESXi:
 
     def vmchoice(self, vm_list):
         vm_list.pop(0)
-        print(f"Current VM Status on {netconnect.server}:")
+        print(f"Current VM Status on {NETCONNECT.server}:")
         print("------------------------------------")
         for vm in vm_list:
             vm_id, vm_name, power_state = vm
@@ -436,26 +436,26 @@ class ESXi:
     def power_onoff_vm(self, id, onoroff):
         if onoroff == "on":
             # Execute the "vim-cmd vmsvc/power.shutdown" command to power on the virtual machine gracefully
-            stdin, stdout, stderr = netconnect.ssh.exec_command("vim-cmd vmsvc/power.on {}".format(id))
+            stdin, stdout, stderr = NETCONNECT.ssh.exec_command("vim-cmd vmsvc/power.on {}".format(id))
 
             # Read the command output
             output = stdout.readlines()
-            print(f"{netconnect.server} response: {output[0]}")
+            print(f"{NETCONNECT.server} response: {output[0]}")
             print()
-            print(f"Power On issued for VM {id} on {netconnect.server}.")
+            print(f"Power On issued for VM {id} on {NETCONNECT.server}.")
             print("Checking VM power states to verify success...")
             time.sleep(30)
 
         elif onoroff == "off":
             # Execute the "vim-cmd vmsvc/power.shutdown" command to power off the virtual machine gracefully
-            stdin, stdout, stderr = netconnect.ssh.exec_command("vim-cmd vmsvc/power.shutdown {}".format(id))
-            print(f"Power Off issued for VM {id} on {netconnect.server}.")
+            stdin, stdout, stderr = NETCONNECT.ssh.exec_command("vim-cmd vmsvc/power.shutdown {}".format(id))
+            print(f"Power Off issued for VM {id} on {NETCONNECT.server}.")
             print("Checking VM power states to verify success...")
             time.sleep(60)
 
     # Quick function to verify VM power state
     def vmpowercheck(self, vm_list):
-        print(f"Current VM Status on {netconnect.server}:")
+        print(f"Current VM Status on {NETCONNECT.server}:")
         for vm in vm_list:
             vm_id, vm_name, power_state = vm
             print("ID: {} Name: {} Power state: {}".format(vm_id, vm_name, power_state))
@@ -468,7 +468,7 @@ class ESXi:
     # Function to check status of maint mode, enable/disable, and recheck status
     def maintmode(self):
         # Run command to check maintenance mode status
-        stdin, stdout, stderr = netconnect.ssh.exec_command("esxcli system maintenanceMode get")
+        stdin, stdout, stderr = NETCONNECT.ssh.exec_command("esxcli system maintenanceMode get")
         status = stdout.readlines()[0].strip()
 
         # Print maintenance mode status and prompt user to enable or disable
@@ -476,13 +476,13 @@ class ESXi:
             print("Maintenance mode is currently enabled")
             action = input("Do you want to disable maintenance mode? (y/n) ")
             if action == "y":
-                netconnect.ssh.exec_command("esxcli system maintenanceMode set --enable=false")
+                NETCONNECT.ssh.exec_command("esxcli system maintenanceMode set --enable=false")
                 print("Maintenance mode disabled")
         elif "Disabled" in status:
             print("Maintenance mode is currently disabled")
             action = input("Do you want to enable maintenance mode? (y/n) ")
             if action == "y":
-                netconnect.ssh.exec_command("esxcli system maintenanceMode set --enable=true")
+                NETCONNECT.ssh.exec_command("esxcli system maintenanceMode set --enable=true")
                 print("Maintenance mode enabled")
 
 
@@ -523,15 +523,15 @@ def main():
         elif choice == '7':
             print("Run Menu Opt #1. Check output to confirm VM Tools is installed before proceeding.")
             print("If using open-vm-tools, output will show guestToolsUnmanaged. Proceed.")
-            vm_list = ESXi.getvms(self)
-            id, onoroff = ESXi.vmchoice(self, vm_list)
-            ESXi.power_onoff_vm(self, id, onoroff)
-            ESXi.vmpowercheck(self, vm_list)
+            vm_list = ESXi.getvms()
+            id, onoroff = ESXi.vmchoice(vm_list)
+            ESXi.power_onoff_vm(id, onoroff)
+            ESXi.vmpowercheck(vm_list)
         elif choice == '8':
-            ESXi.maintmode(self)
+            ESXi.maintmode()
         elif choice == '9':
-            netconnect.ssh.close()
-            Disconnect(netconnect.si)
+            NETCONNECT.ssh.close()
+            Disconnect(NETCONNECT.si)
             exit()
         else:
             print("Invalid choice. Please try again.")
@@ -540,5 +540,5 @@ def main():
 
 # Run the main function
 if __name__ == "__main__":
-    netconnect = netconnect()
+    netconnect = NETCONNECT()
     main()
