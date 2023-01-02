@@ -185,7 +185,6 @@ class ESXi:
                 f.write("-----------------------\n\n\n")
             print(f"Data pull has been completed for device {netconnect.server}.")
             print(f"Output can be found in {f.name}.")
-            f.close()
         time.sleep(4)
         print()
 
@@ -524,12 +523,12 @@ def main():
         elif choice == '7':
             print("Run Menu Opt #1. Check output to confirm VM Tools is installed before proceeding.")
             print("If using open-vm-tools, output will show guestToolsUnmanaged. Proceed.")
-            vm_list = ESXi.getvms()
-            id, onoroff = ESXi.vmchoice(vm_list)
-            ESXi.power_onoff_vm(id, onoroff)
-            ESXi.vmpowercheck(vm_list)
+            vm_list = ESXi.getvms(self)
+            id, onoroff = ESXi.vmchoice(self, vm_list)
+            ESXi.power_onoff_vm(self, id, onoroff)
+            ESXi.vmpowercheck(self, vm_list)
         elif choice == '8':
-            ESXi.maintmode()
+            ESXi.maintmode(self)
         elif choice == '9':
             netconnect.ssh.close()
             Disconnect(netconnect.si)
