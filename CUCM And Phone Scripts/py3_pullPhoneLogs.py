@@ -2,9 +2,8 @@
 import requests
 import subprocess
 
+
 # Collect IPs from user input based on how many phones we want to check
-
-
 def phonecollection():
     num_phones = int(input('How many phones?: '))
     if type(num_phones) != int:
@@ -15,9 +14,8 @@ def phonecollection():
         ips.append(input('What is the phone IP address?: '))
     return ips
 
+
 # Log collection function that runs wget against consolelog url to pull recursively.
-
-
 def logcollect(ip_addr):
     destfolder = str('~/')
     uris = list({

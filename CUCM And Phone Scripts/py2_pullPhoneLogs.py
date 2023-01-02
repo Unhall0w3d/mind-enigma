@@ -15,9 +15,8 @@ def phonecollection():
         ips.append(raw_input('What is the phone IP address?: '))
     return ips
 
+
 # Log collection function that runs wget against consolelog url to pull recursively.
-
-
 def logcollect(ip_addr):
     destfolder = str('~/')
     uris = list({

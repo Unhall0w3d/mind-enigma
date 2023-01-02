@@ -53,7 +53,7 @@ class netconnect:
         self.server = input("Enter the vSphere server hostname: ")
         self.port = int(input("Enter the Port Forward port number, or 443: "))
         self.username = input("Enter the vSphere server username: ")
-        self.password = getpass("Enter the vSphere server password: ")
+        self.password = input("Enter the vSphere server password: ")
         print()
 
         # Set login parameters for failed login tracking and max attempts
@@ -61,14 +61,15 @@ class netconnect:
         self.max_attempts = 2
 
         # Do SmartConnect
-        self.si = netconnect.SmartConnect()
-        self.sshconn = netconnect.sshconn()
+        self.si = netconnect.SmartConnect(self)
+        self.sshconn = netconnect.sshconn(self)
 
     def SmartConnect(self):
         try:
-            print(f"Attempting to connect to {self.server} on port {self.port}...")
+            print(f"Connecting to {self.server} via HTTPS/{self.port}...")
             si = SmartConnect(host=self.server, user=self.username, pwd=self.password, port=self.port,
                               sslContext=self.context)
+            print(f"Connected to {self.server} on port {self.port}")
             return si
         except vim.fault.InvalidLogin:
             self.failed_login += 1
@@ -84,7 +85,7 @@ class netconnect:
     def sshconn(self):
         try:
             # Connect to the ESXi host using SSH
-            print(f"Connecting to {self.server} via SSH. Standby.")
+            print(f"Connecting to {self.server} via SSH/22...")
             self.ssh.connect(hostname=self.server, username=self.username, password=self.password)
             print(f"Connected to {self.server}.")
             return self.ssh
@@ -96,7 +97,12 @@ class netconnect:
             exit()
         except TimeoutError:
             print(f"Failed to connect to host {self.server} due to Connection Timeout.")
-            print(f"Please ensure that SSH is enabled and {self.server} is reachable.")
+            print(f"Please ensure that {self.server} is reachable.")
+            Disconnect(netconnect.si)
+            exit()
+        except paramiko.ssh_exception.NoValidConnectionsError as f:
+            print(f"Failed to connect to {self.server} due to {f}.")
+            print(f"Please ensure the TSM/TSM-SSH Services are started on {self.server}.")
             Disconnect(netconnect.si)
             exit()
 
@@ -485,6 +491,8 @@ class ESXi:
 def main():
     while True:
         # Display the menu
+        print()
+        print()
         print("Select an option:")
         print("-----------------")
         print("1. List VMs & Details")
