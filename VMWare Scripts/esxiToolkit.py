@@ -108,14 +108,15 @@ class ESXi:
 
     # Function to list virtual machines and useful details
     def list_vms(self):
+        root_folder = self.si.content.rootFolder
         # Retrieve a list of all virtual machines in the vSphere environment
-        vm_view = self.si.content.viewManager.CreateContainerView(self.si.content.rootFolder,
+        vm_view = self.si.content.viewManager.CreateContainerView(root_folder,
                                                                         [vim.VirtualMachine],
                                                                         True)
         vm_list = vm_view.view
         vm_view.Destroy()
 
-        host_view = self.si.content.viewManager.CreateContainerView(self.si.content.rootFolder, [vim.HostSystem], True)
+        host_view = self.si.content.viewManager.CreateContainerView(root_folder, [vim.HostSystem], True)
         host_list = host_view.view
         host_view.Destroy()
 
@@ -123,10 +124,7 @@ class ESXi:
         for h in host_list:
             host = h
             break
-        print(host.runtime.healthSystemRuntime.hardwareStatusInfo.memoryStatusInfo)
-        print(host.runtime.healthSystemRuntime.hardwareStatusInfo.cpuStatusInfo)
-        print(host.runtime.healthSystemRuntime.hardwareStatusInfo.storageStatusInfo)
-        exit()
+
         # Print information about each virtual machine
         print(f"Performing data pull for device {self.server}. Please wait...")
         with open(os.path.join(os.path.expanduser('~'),
@@ -134,10 +132,25 @@ class ESXi:
                   'w+') as f:
             for vm in vm_list:
                 f.write(f"--- ESXi Report for {host.name} ---\n")
+                f.write(f"Vendor: {host.hardware.systemInfo.vendor}\n")
+                f.write(f"Model: {host.hardware.systemInfo.model}\n")
+                f.write(f"Serial Number: {host.hardware.systemInfo.serialNumber}\n")
                 f.write(f"Power state: {host.runtime.powerState}\n")
                 f.write(f"Connection State: {host.runtime.connectionState}\n")
                 f.write(f"Maintenance Mode: {host.runtime.inMaintenanceMode}\n")
                 f.write(f"Boot Time: {host.runtime.bootTime}\n")
+                f.write("--- CPU Details ---\n")
+                # f.write(f"Vendor: {host.hardware.cpuPkg.vendor}\n")
+                # f.write(f"Model: {host.hardware.cpuPkg.description}\n")
+                f.write(f"Physical CPU Count: {host.hardware.cpuInfo.numCpuPackages}\n")
+                f.write(f"Total CPU Cores: {host.hardware.cpuInfo.numCpuCores}\n")
+                f.write(f"Total CPU Threads: {host.hardware.cpuInfo.numCpuCores}\n")
+                f.write(f"Power Management: {host.hardware.cpuPowerManagementInfo.currentPolicy}")
+                f.write("--- Memory Details ---\n")
+                f.write(f"Memory Size: {(int(host.hardware.memorySize)/1073741824)[2:]}")
+                f.write(f"--- BIOS Details ---\n")
+                f.write(f"BIOS Version: {host.hardware.biosInfo.biosVersion}\n")
+                f.write(f"Release Date: {host.hardware.biosInfo.releaseDate}\n\n")
                 f.write(f"--- VM Report for {vm.name} ---\n")
                 f.write(f"Name: {vm.name}\n")
                 f.write(f"Power state: {vm.summary.runtime.powerState}\n")
@@ -525,7 +538,7 @@ if __name__ == "__main__":
         print()
         print("Select an option:")
         print("-----------------")
-        print("1. List VMs & Details")
+        print("1. List ESXi & VM Details")
         print("2. List And Download Log Files")
         print("3. Collect ESXi HealthCheck")
         print("4. Perform a VM Snapshot")
