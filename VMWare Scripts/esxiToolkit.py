@@ -144,7 +144,7 @@ class ESXi:
                 # f.write(f"Model: {host.hardware.cpuPkg.description}\n")
                 f.write(f"Physical CPU Count: {host.hardware.cpuInfo.numCpuPackages}\n")
                 f.write(f"Total CPU Cores: {host.hardware.cpuInfo.numCpuCores}\n")
-                f.write(f"Total CPU Threads: {host.hardware.cpuInfo.numCpuCores}\n")
+                f.write(f"Total CPU Threads: {host.hardware.cpuInfo.numCpuThreads}\n")
                 f.write(f"Power Management: {host.hardware.cpuPowerManagementInfo.currentPolicy}")
                 f.write("--- Memory Details ---\n")
                 f.write(f"Memory Size: {(int(host.hardware.memorySize)/1073741824)[2:]}")
@@ -413,7 +413,6 @@ class ESXi:
         while True:
             try:
                 # Prompt the user to select a VM
-                print(vmid)
                 selection = int(input("Select a VM by number, or (q)uit: "))
                 if selection in vmid:
                     print(f"You cannot perform a power action on {vm.summary.config.name}.")
