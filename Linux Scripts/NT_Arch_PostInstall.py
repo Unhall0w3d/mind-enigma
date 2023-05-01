@@ -285,9 +285,9 @@ def menu():
     print("***********************************")
     print("Menu:")
     print("1. Install Kernel")
-    print("2. Install Desktop Environment")
+    print("2. Install AUR Helper")
     print("3. Install Display Manager")
-    print("4. Install AUR Helper")
+    print("4. Install Desktop Environment")
     print("5. Exit")
 
     choice = input("Enter your choice (1-5): ")
@@ -295,11 +295,11 @@ def menu():
     if choice == '1':
         submenu()
     elif choice == '2':
-        install_desktop_environment()
+        install_aur_helper()
     elif choice == '3':
         install_display_manager()
     elif choice == '4':
-        install_aur_helper()
+        install_desktop_environment()
     elif choice == '5':
         print("Exiting script...")
         sys.exit()
