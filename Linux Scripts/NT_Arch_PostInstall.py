@@ -116,24 +116,29 @@ def install_display_manager():
         command = "sudo pacman -S gdm --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '2':
         command = "sudo pacman -S lightdm lightdm-gtk-greeter --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
         print("Select LightDM Greeter:")
         install_greeter()
+        return
     elif choice == '3':
         command = "sudo pacman -S lxdm --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '4':
         command = "sudo pacman -S sddm --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '5':
         command = "sudo pacman -S xorg xorg-xinit xterm xdm --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '6':
         return
     else:
@@ -156,18 +161,25 @@ def install_desktop_environment():
 
     if choice == '1':
         install_lxde()
+        return
     elif choice == '2':
         install_gnome()
+        return
     elif choice == '3':
         install_kde()
+        return
     elif choice == '4':
         install_xfce()
+        return
     elif choice == '5':
         install_budgie()
+        return
     elif choice == '6':
         install_cinnamon()
+        return
     elif choice == '7':
         install_mate()
+        return
     elif choice == '8':
         return
     else:
@@ -195,11 +207,13 @@ def install_aur_helper():
 
     if choice == '1':
         install_yay()
+        return
     elif choice == '2':
         return
     else:
         print("Invalid choice. Please try again.")
         install_aur_helper()
+        return
 
 
 def install_greeter():
@@ -216,18 +230,22 @@ def install_greeter():
         command = "sudo pacman -S lightdm-gtk-greeter --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '2':
         command = "yay -S lightdm-slick-greeter --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '3':
         command = "sudo pacman -S lightdm-webkit-theme-litarvan --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '4':
         command = "sudo pacman -S lightdm-mini-greeter --needed"
         return_code = run_command(command)
         print(f"\nCommand exited with return code: {return_code}")
+        return
     elif choice == '5':
         return
     else:
@@ -246,10 +264,13 @@ def submenu():
 
     if choice == '1':
         install_liquorix_kernel()
+        return
     elif choice == '2':
         install_zen_kernel()
+        return
     elif choice == '3':
         install_default_kernel()
+        return
     elif choice == '4':
         return
     else:
