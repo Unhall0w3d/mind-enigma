@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-
+import re
 
 def run_command(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -147,6 +147,54 @@ def create_kvm_conf(vga_bus_id=None, audio_bus_id=None, usb_bus_id=None):
             file.write(f'VIRSH_GPU_USB={usb_bus_id}\n')
 
 
+def blacklist_gpu_driver(selected_vga_bus_id):
+    print("Blacklisting GPU driver...")
+
+    stdout, _, _ = run_command(f'lspci -nnk -s {selected_vga_bus_id}')
+    if 'NVIDIA' in stdout:
+        driver = 'nouveau'
+    elif 'Advanced Micro Devices' in stdout or 'AMD' in stdout:
+        driver = 'amdgpu'
+    elif 'Radeon' in stdout:
+        driver = 'radeon'
+    else:
+        print("Error: Unsupported GPU vendor.")
+        return False
+
+    blacklist_file = '/etc/modprobe.d/blacklist.conf'
+    with open(blacklist_file, 'a') as file:
+        file.write(f'blacklist {driver}\n')
+
+    print(f"Blacklisted {driver} driver.")
+    return True
+
+
+def bind_gpu_to_vfio_pci(converted_vga_bus_id):
+    print("Binding GPU to VFIO-PCI driver...")
+
+    vfio_conf_file = '/etc/modprobe.d/vfio.conf'
+    with open(vfio_conf_file, 'w') as file:
+        file.write(f'options vfio-pci ids={converted_vga_bus_id}\n')
+
+    mkinitcpio_conf_file = '/etc/mkinitcpio.conf'
+    with open(mkinitcpio_conf_file, 'r') as file:
+        content = file.read()
+
+    content = re.sub(r'MODULES=\((.*)\)', r'MODULES=(\1 vfio_pci)', content)
+
+    with open(mkinitcpio_conf_file, 'w') as file:
+        file.write(content)
+
+    print("Rebuilding initramfs image...")
+    returncode = run_command_interactive("sudo mkinitcpio -P")
+    if returncode != 0:
+        print("Error rebuilding initramfs image")
+        return False
+
+    print("GPU bound to VFIO-PCI driver.")
+    return True
+
+
 def main():
     print('Checking if virtualization is enabled...')
     if not check_virtualization_enabled():
@@ -184,6 +232,16 @@ def main():
     print('Setting up libvirt hook helper...')
     if not setup_libvirt_hook_helper():
         print('Error during libvirt hook helper setup. Exiting...')
+        return
+
+    print('Blacklisting GPU driver...')
+    if not blacklist_gpu_driver(selected_vga_bus_id):
+        print('Error during GPU driver blacklisting. Exiting...')
+        return
+
+    print('Binding GPU to VFIO-PCI driver...')
+    if not bind_gpu_to_vfio_pci(selected_vga_bus_id):
+        print('Error during GPU binding to VFIO-PCI driver. Exiting...')
         return
 
     print('VFIO and GPU PCI passthrough setup complete. Please reboot your system for the changes to take effect.')
