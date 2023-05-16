@@ -10,6 +10,35 @@ if [ -z "$website" ]; then
     exit 1
 fi
 
+# Detect system and set the path to the openssl.cnf file
+if [ -f /etc/debian_version ]; then
+    # Debian-based system
+    openssl_cnf_path="/etc/ssl/openssl.cnf"
+elif [ -f /etc/arch-release ]; then
+    # Arch-based system
+    openssl_cnf_path="/etc/ssl/openssl.cnf"
+else
+    echo "Error: This script supports only Debian and Arch based systems."
+    exit 1
+fi
+
+# Check and insert options in openssl.cnf if necessary
+echo "Ensuring UnsafeLegacyRenegotiation SSL option is enabled..."
+
+declare -A options
+options=(["openssl_init"]="ssl_conf = ssl_sect" ["ssl_sect"]="system_default = system_default_sect" ["system_default_sect"]="Options = UnsafeLegacyRenegotiation")
+
+for category in "${!options[@]}"; do
+    if grep -q "^\[$category\]" $openssl_cnf_path; then
+        if ! grep -q "^${options[$category]}" $openssl_cnf_path; then
+            sudo sed -i "/^\[$category\]/a\\${options[$category]}" $openssl_cnf_path
+        fi
+    else
+        echo "[$category]" | sudo tee -a $openssl_cnf_path
+        echo "${options[$category]}" | sudo tee -a $openssl_cnf_path
+    fi
+done
+
 # Create a temporary file
 tempfile=$(mktemp)
 
