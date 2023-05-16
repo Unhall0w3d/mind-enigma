@@ -58,7 +58,7 @@ if echo "$output" | grep -q "unsafe legacy renegotiation"; then
         fi
     done
 else
-    echo "Unsafe legacy renegotiation not supported by $website. Skipping..."
+    echo "Unsafe legacy renegotiation not supported by $website, or enabled locally already. Skipping..."
 fi
 
 echo "Connection successful. Extracting certificate chain..."
