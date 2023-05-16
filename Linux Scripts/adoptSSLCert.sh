@@ -22,23 +22,6 @@ else
     exit 1
 fi
 
-# Check and insert options in openssl.cnf if necessary
-echo "Ensuring UnsafeLegacyRenegotiation SSL option is enabled..."
-
-declare -A options
-options=(["openssl_init"]="ssl_conf = ssl_sect" ["ssl_sect"]="system_default = system_default_sect" ["system_default_sect"]="Options = UnsafeLegacyRenegotiation")
-
-for category in "${!options[@]}"; do
-    if grep -q "^\[$category\]" $openssl_cnf_path; then
-        if ! grep -q "^${options[$category]}" $openssl_cnf_path; then
-            sudo sed -i "/^\[$category\]/a\\${options[$category]}" $openssl_cnf_path
-        fi
-    else
-        echo "[$category]" | sudo tee -a $openssl_cnf_path
-        echo "${options[$category]}" | sudo tee -a $openssl_cnf_path
-    fi
-done
-
 # Create a temporary file
 tempfile=$(mktemp)
 
@@ -46,13 +29,36 @@ tempfile=$(mktemp)
 echo "Attempting to connect to $website and download the certificate chain..."
 
 # Attempt to connect to the server and download the certificate chain
-echo "QUIT" | openssl s_client -showcerts -servername "$website" -connect "$website":443 > $tempfile 2>/dev/null
+output=$(echo "QUIT" | openssl s_client -showcerts -servername "$website" -connect "$website":443 2>&1)
+echo "$output" > $tempfile
 
 # Check if the connection was successful
 if ! grep -q "BEGIN CERTIFICATE" "$tempfile"; then
     echo "Error: Failed to connect to $website. Please ensure the URL is correct and the website is up."
     rm "$tempfile"
     exit 1
+fi
+
+# Check if 'unsafe legacy renegotiation' is supported
+if echo "$output" | grep -q "unsafe legacy renegotiation"; then
+    # Check and insert options in openssl.cnf if necessary
+    echo "Ensuring UnsafeLegacyRenegotiation SSL option is enabled..."
+
+    declare -A options
+    options=(["openssl_init"]="ssl_conf = ssl_sect" ["ssl_sect"]="system_default = system_default_sect" ["system_default_sect"]="Options = UnsafeLegacyRenegotiation")
+
+    for category in "${!options[@]}"; do
+        if grep -q "^\[$category\]" $openssl_cnf_path; then
+            if ! grep -q "^${options[$category]}" $openssl_cnf_path; then
+                sudo sed -i "/^\[$category\]/a\\${options[$category]}" $openssl_cnf_path
+            fi
+        else
+            echo "[$category]" | sudo tee -a $openssl_cnf_path
+            echo "${options[$category]}" | sudo tee -a $openssl_cnf_path
+        fi
+    done
+else
+    echo "Unsafe legacy renegotiation not supported by $website. Skipping..."
 fi
 
 echo "Connection successful. Extracting certificate chain..."
