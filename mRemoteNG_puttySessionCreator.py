@@ -68,16 +68,16 @@ def main():
     username = input("Enter the username: ")
     ppk_path = input("Enter the .ppk file path: ")
 
-    # List all .xls and .xlsx files in the current directory
-    xls_files = glob.glob("*.xls*")
+    # List all .csv files in the current directory
+    csv_files = glob.glob("*.csv")
 
-    # If there are no .xls or .xlsx files in the directory, notify the user
-    if not xls_files:
-        print("No .xls or .xlsx files found in the current directory.")
+    # If there are no .csv files in the directory, notify the user
+    if not csv_files:
+        print("No .csv files found in the current directory.")
         return
 
-        # Print out the files for the user to choose
-    for i, file in enumerate(xls_files):
+    # Print out the files for the user to choose
+    for i, file in enumerate(csv_files):
         print(f"{i + 1}. {file}")
 
         # Get the user's choice
