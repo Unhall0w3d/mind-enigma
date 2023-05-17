@@ -1,6 +1,7 @@
 import random
 import os
 import pandas as pd
+import glob
 
 
 def get_tunnel_config(techType):
@@ -67,11 +68,24 @@ def main():
     username = input("Enter the username: ")
     ppk_path = input("Enter the .ppk file path: ")
 
-    # Get the device list file location
-    device_list_path = input("Enter the device list file path (.xls): ")
+    # List all .xls and .xlsx files in the current directory
+    xls_files = glob.glob("*.xls*")
+
+    # If there are no .xls or .xlsx files in the directory, notify the user
+    if not xls_files:
+        print("No .xls or .xlsx files found in the current directory.")
+        return
+
+        # Print out the files for the user to choose
+    for i, file in enumerate(xls_files):
+        print(f"{i + 1}. {file}")
+
+        # Get the user's choice
+    choice = int(input("Enter the number of the file to use: ")) - 1
+    device_list_path = xls_files[choice]
 
     # Read the .xls file
-    df = pd.read_excel(device_list_path, skiprows=1) # Skip header row
+    df = pd.read_excel(device_list_path, skiprows=1, engine='xlrd') # Skip header row
 
     # Filter the data based on the device type and column "E"
     device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "ICM", "Network-Voice"]
