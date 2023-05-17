@@ -2,78 +2,29 @@ import random
 import os
 import pandas as pd
 import glob
+import time
 
 
-def get_tunnel_config(techType):
+def get_tunnel_config(tech_type, port_forwardings):
     """
     Returns the tunnel configuration based on the device type.
     """
     ssh_port = random.randint(30000, 35000)
-    ssh_tunnel = f"D{ssh_port} localhost:22"
+    ssh_tunnel = f"L{ssh_port}=localhost:22"
 
-    if techType in ["Network", "Network-Voice"]:
-        return ssh_tunnel
-    elif techType in ["IPT", "DC-UCS", "DC-VMware"]:
+    if tech_type in ["Network", "Network-Voice"]:
+        port_forwardings.append(ssh_tunnel)
+    elif tech_type in ["IPT", "DC-UCS", "DC-VMware"]:
         https_port = random.randint(35000, 40000)
-        https_tunnel = f"D{https_port} localhost:443"
-        return f"{ssh_tunnel}\n{https_tunnel}"
-    elif techType == "ICM":
+        https_tunnel = f"L{https_port}=localhost:443"
+        port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
+    elif tech_type == "ICM":
         rdp_port = random.randint(18000, 20000)
-        rdp_tunnel = f"D{rdp_port} localhost:3389"
-        return f"{ssh_tunnel}\n{rdp_tunnel}"
+        rdp_tunnel = f"L{rdp_port}=localhost:3389"
+        port_forwardings.append(f"{ssh_tunnel},{rdp_tunnel}")
 
 
-def create_putty_reg_file(session_name, hostname, username, ppk_path, techType, devName, descrip, site):
-    # Generate random port number between 20000 and 30000
-    port = random.randint(20000, 30000)
-
-    # Get the tunnel configuration
-    tunnel_config = get_tunnel_config(techType)
-
-    # Define registry key path
-    key_path = r"[HKEY_CURRENT_USER\Software\SimonTatham\PuTTY\Sessions\{}]".format(session_name)
-
-    # Define the session details
-    session_details = f"""
-{key_path}
-"HostName"="{hostname}"
-"PortNumber"=dword:{port:08x}
-"UserName"="{username}"
-"PublicKeyFile"="{ppk_path}"
-"Compression"=dword:00000001
-"Protocol"="ssh"
-"Tunnel"="{tunnel_config}"
-"DeviceName"="{devName}"
-"Description"="{descrip}"
-"SiteName"="{site}"
-"""
-
-    # Define the filename using the session name and hostname
-    filename = f"{session_name}-{hostname}.reg"
-
-    # Check if the file already exists
-    if os.path.isfile(os.path.join('mRemoteNG Sessions - Optanix', filename)):
-        # If it does, append the tunnel configurations
-        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'a') as f:
-            f.write('"Tunnel"="{}"\n'.format(tunnel_config))
-    else:
-        # If it doesn't, create a new file and write the session details
-        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'w') as f:
-            f.write(session_details)
-
-    print(f"Session {session_name} created successfully.")
-
-
-def main():
-    # Check if the directory exists, create it if it doesn't
-    if not os.path.exists('mRemoteNG Sessions - Optanix'):
-        os.makedirs('mRemoteNG Sessions - Optanix')
-
-    session_name = input("Enter the session name: ")
-    hostname = input("Enter the hostname/IP: ")
-    username = input("Enter the username: ")
-    ppk_path = input("Enter the .ppk file path: ")
-
+def parse_csv():
     # List all .csv files in the current directory
     csv_files = glob.glob("*.csv")
 
@@ -91,21 +42,90 @@ def main():
     device_list_path = csv_files[choice]
 
     # Read the .csv file
-    df = pd.read_csv(device_list_path, header=None)  # Indicate that there is no header
+    read_in = pd.read_csv(device_list_path, header=None)  # Indicate that there is no header
 
     # Filter the data based on the device type and column "E"
     device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "ICM", "Network-Voice"]
-    df = df[df[0].isin(device_types) & (df[4] != 'N')]
+    filtered = read_in[read_in[0].isin(device_types) & (read_in[4] != 'N')]
+    return filtered
 
-    # Iterate over each row in the filtered data
-    for _, row in df.iterrows():
-        techType = row[0]
-        devName = row[1]
-        descrip = row[3]
-        site = row[10]
 
-        create_putty_reg_file(session_name, hostname, username, ppk_path, techType, devName, descrip, site)
+class HiveMind:
+    def __init__(self):
+        # Check if the directory exists, create it if it doesn't
+        if not os.path.exists('mRemoteNG Sessions - Optanix'):
+            os.makedirs('mRemoteNG Sessions - Optanix')
+
+        # Establish list to contain port forwarding information
+        self.port_forwardings = []
+        self.timestr = time.strftime("%Y%m%d-%H%M%S")
+
+        # Collect some data
+        self.session_name = input("Enter the session name: ")
+        # self.hostname = input("Enter the hostname/IP: ")
+        # self.username = input("Enter the username: ")
+        # self.ppk_path = input("Enter the .ppk file path: ")
+
+    def construct_port_forwards(self, tech_type):
+        # Get the tunnel configuration
+        get_tunnel_config(self, tech_type)
+
+    def construct_reg_key(self):
+        # Generate random port number between 20000 and 30000
+        port = random.randint(20000, 30000)
+
+        # Define registry key path
+        key_path = r"[HKEY_CURRENT_USER\Software\SimonTatham\PuTTY\Sessions\{}]".format(self.session_name)
+
+        # Define the session details
+        session_details = f"""Windows Registry Editor Version 5.00 
+
+            {key_path}
+
+            "HostName"=sz:"localhost"
+            "PortNumber"=dword:{port:08x}
+            "UserName"=sz:"sampson"
+            "PublicKeyFile"=sz:"C:\sampsonppk\Sampson.ppk"
+            "Protocol"="ssh"
+
+            """
+
+        # Define the filename using the session name and hostname
+        filename = f"{self.session_name}-DMA-Tunnels-{self.timestr}.reg"
+
+        # Create a new file and write the session details
+        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'w') as f:
+            f.write(session_details)
+
+        # Inform user that the .reg file was created successfully
+        print(f"Reg file {self.session_name} created successfully.")
+
+    def director(self):
+
+        # Construct the base reg key to add a session to the end device for tunneling
+        self.construct_reg_key()
+
+        # Read in and parse .csv file to gather interesting data
+        filtered = parse_csv()
+
+        # Iterate over each row in the filtered data
+        for _, row in filtered.iterrows():
+            tech_type = row[0]
+            ip_addr = row[2]
+            dev_name = row[1]
+            descrip = row[3]
+            site = row[10]
+
+            self.construct_port_forwards(tech_type)
+
+        # Generate port forward string from list
+        pfwdlist = ",".join(self.port_forwardings)
+
+        # Add in port forwards
+        with open(os.path.join('mRemoteNG Sessions - Optanix', ), 'a') as f:
+            f.write(f""""PortForwardings"=sz:"{pfwdlist}"
+                                            """)
 
 
 if __name__ == "__main__":
-    main()
+    HiveMind().director()
