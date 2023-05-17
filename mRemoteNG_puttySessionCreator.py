@@ -51,9 +51,15 @@ def create_putty_reg_file(session_name, hostname, username, ppk_path, techType, 
     # Define the filename using the session name and hostname
     filename = f"{session_name}-{hostname}.reg"
 
-    # Write the session details to the .reg file
-    with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'w') as f:
-        f.write(session_details)
+    # Check if the file already exists
+    if os.path.isfile(os.path.join('mRemoteNG Sessions - Optanix', filename)):
+        # If it does, append the tunnel configurations
+        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'a') as f:
+            f.write('"Tunnel"="{}"\n'.format(tunnel_config))
+    else:
+        # If it doesn't, create a new file and write the session details
+        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'w') as f:
+            f.write(session_details)
 
     print(f"Session {session_name} created successfully.")
 
