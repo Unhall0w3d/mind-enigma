@@ -4,26 +4,6 @@ import pandas as pd
 import glob
 import time
 
-
-def get_tunnel_config(tech_type, port_forwardings):
-    """
-    Returns the tunnel configuration based on the device type.
-    """
-    ssh_port = random.randint(30000, 35000)
-    ssh_tunnel = f"L{ssh_port}=localhost:22"
-
-    if tech_type in ["Network", "Network-Voice"]:
-        port_forwardings.append(ssh_tunnel)
-    elif tech_type in ["IPT", "DC-UCS", "DC-VMware"]:
-        https_port = random.randint(35000, 40000)
-        https_tunnel = f"L{https_port}=localhost:443"
-        port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
-    elif tech_type == "ICM":
-        rdp_port = random.randint(18000, 20000)
-        rdp_tunnel = f"L{rdp_port}=localhost:3389"
-        port_forwardings.append(f"{ssh_tunnel},{rdp_tunnel}")
-
-
 def parse_csv():
     # List all .csv files in the current directory
     csv_files = glob.glob("*.csv")
@@ -66,9 +46,27 @@ class HiveMind:
         # self.username = input("Enter the username: ")
         # self.ppk_path = input("Enter the .ppk file path: ")
 
+    def get_tunnel_config(self, tech_type):
+        """
+        Returns the tunnel configuration based on the device type.
+        """
+        ssh_port = random.randint(30000, 35000)
+        ssh_tunnel = f"L{ssh_port}=localhost:22"
+
+        if tech_type in ["Network", "Network-Voice"]:
+            self.port_forwardings.append(ssh_tunnel)
+        elif tech_type in ["IPT", "DC-UCS", "DC-VMware"]:
+            https_port = random.randint(35000, 40000)
+            https_tunnel = f"L{https_port}=localhost:443"
+            self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
+        elif tech_type == "ICM":
+            rdp_port = random.randint(18000, 20000)
+            rdp_tunnel = f"L{rdp_port}=localhost:3389"
+            self.port_forwardings.append(f"{ssh_tunnel},{rdp_tunnel}")
+
     def construct_port_forwards(self, tech_type):
         # Get the tunnel configuration
-        get_tunnel_config(self, tech_type)
+        self.get_tunnel_config(self, tech_type)
 
     def construct_reg_key(self):
         # Generate random port number between 20000 and 30000
@@ -119,7 +117,9 @@ class HiveMind:
             self.construct_port_forwards(tech_type)
 
         # Generate port forward string from list
+        print(self.port_forwardings)
         pfwdlist = ",".join(self.port_forwardings)
+        print(pfwdlist)
 
         # Add in port forwards
         with open(os.path.join('mRemoteNG Sessions - Optanix', ), 'a') as f:
