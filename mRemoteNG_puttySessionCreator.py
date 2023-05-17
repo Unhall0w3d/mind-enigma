@@ -3,6 +3,8 @@ import os
 import pandas as pd
 import glob
 import time
+import csv
+import uuid
 
 
 def parse_csv():
@@ -31,9 +33,15 @@ def parse_csv():
     return filtered
 
 
+def generate_uuid():
+    return str(uuid.uuid4())
+
+
 class HiveMind:
     def __init__(self):
         self.filename = None
+        self.folderuuid = generate_uuid()
+
         # Check if the directory exists, create it if it doesn't
         if not os.path.exists('mRemoteNG Sessions - Optanix'):
             os.makedirs('mRemoteNG Sessions - Optanix')
@@ -48,7 +56,7 @@ class HiveMind:
         # self.username = input("Enter the username: ")
         # self.ppk_path = input("Enter the .ppk file path: ")
 
-    def get_tunnel_config(self, tech_type):
+    def get_tunnel_config(self, tech_type, ip_addr, dev_name, descrip, site):
         """
         Returns the tunnel configuration based on the device type.
         """
@@ -57,14 +65,70 @@ class HiveMind:
 
         if tech_type in ["Network", "Network-Voice"]:
             self.port_forwardings.append(ssh_tunnel)
+            sshuuid = generate_uuid()
+            with open(
+                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
+                                 'a')) as f:
+                writer = csv.writer(f)
+                data = [
+                    f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
+                    f"{site}_{descrip}", "SSH", "General", f"{ip_addr}", "", "SSH2",
+                    "DefaultSettings", "22", "False", "True", "False", "IE",
+                    "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
+                    "TRUE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
+                    "", "", "", "", "", "FALSE", "CompNone",
+                    "EncHextile", "AuthVNC", "ProxyNone", "", "0", "",
+                    "", "ColNormal", "SmartSAspect", "False", "Never",
+                    "", "Yes", "", "",
+                    "", "FALSE", "Highest"
+                ]
+                writer.writerow(data)
         elif tech_type in ["IPT", "DC-UCS", "DC-VMware"]:
             https_port = random.randint(35000, 40000)
             https_tunnel = f"L{https_port}=localhost:443"
             self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
+            sshuuid = generate_uuid()
+            httpsuuid = generate_uuid()
+            with open(
+                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
+                                 'a')) as f:
+                writer = csv.writer(f)
+                sshdata = [
+                    f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
+                    f"{site}_{descrip}", "SSH", "General", f"{ip_addr}", "", "SSH2",
+                    "DefaultSettings", "22", "False", "True", "False", "IE",
+                    "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
+                    "TRUE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
+                    "", "", "", "", "", "FALSE", "CompNone",
+                    "EncHextile", "AuthVNC", "ProxyNone", "", "0", "",
+                    "", "ColNormal", "SmartSAspect", "False", "Never",
+                    "", "Yes", "", "",
+                    "", "FALSE", "Highest"
+                ]
+                writer.writerow(sshdata)
+                httpsdata = [
+                    f"{tech_type}_{dev_name}_HTTPS", f"{httpsuuid}", f"{self.folderuuid}", "Connection",
+                    f"{site}_{descrip}", "Web Server", "General", f"{ip_addr}", "", "HTTPS",
+                    "DefaultSettings", "443", "False", "True", "False", "IE",
+                    "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
+                    "TRUE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "FALSE",
+                    "FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
+                    "", "", "", "", "", "FALSE", "CompNone",
+                    "EncHextile", "AuthVNC", "ProxyNone", "", "0", "",
+                    "", "ColNormal", "SmartSAspect", "False", "Never",
+                    "", "Yes", "", "",
+                    "", "FALSE", "Highest"
+                ]
+                writer.writerow(httpsdata)
 
-    def construct_port_forwards(self, tech_type):
+    def construct_port_forwards(self, tech_type, ip_addr, dev_name, descrip, site):
         # Get the tunnel configuration
-        self.get_tunnel_config(tech_type)
+        self.get_tunnel_config(tech_type, ip_addr, dev_name, descrip, site)
 
     def construct_reg_key(self):
         # Generate random port number between 20000 and 30000
@@ -95,14 +159,55 @@ class HiveMind:
         # Inform user that the .reg file was created successfully
         print(f"Reg file {self.session_name} created successfully.")
 
-    def director(self):
+    def mremoteng_import_generator(self):
+        # Create .csv file
+        with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
+                               'w')) as f:
+            writer = csv.writer(f)
+            header = [
+                "Name", "Id", "Parent", "NodeType", "Description", "Icon", "Panel", "Hostname", "VmId", "Protocol",
+                "PuttySession", "Port", "ConnectToConsole", "UseCredSsp", "UseVmId", "RenderingEngine",
+                "ICAEncryptionScrength", "RDPAuthenticationLevel", "LoadBalanceInfo", "Colors", "Resolution",
+                "AutomaticResize", "DisplayWallpaper", "DisplayThemes", "EnableFontSmoothing",
+                "EnableDesktopComposition", "CacheBitmaps", "RedirectDiskDrives", "RedirectPorts",
+                "RedirectPrinters", "RedirectClipboard", "RedirectSmartCards", "RedirectSound", "RedirectKeys",
+                "PreExtApp", "PostExtApp", "MacAddress", "UserField", "ExtApp", "Favorite", "VNCCompression",
+                "VNCEncoding", "VNCAuthMode", "VNCProxyType", "VNCProxyIP", "VNCProxyPort", "VNCProxyUsername",
+                "VNCProxyPassword", "VNCColors", "VNCSmartSizeMode", "VNCViewOnly", "RDGatewayUsageMethod",
+                "RDGatewayHostname", "RDGatewayUseConnectionCredentials", "RDGatewayUsername", "RDGatewayPassword",
+                "RDGatewayDomain", "RedirectAudioCapture", "RdpVersion"
+            ]
+            writer.writerow(header)
+            parentfolder = [
+                f"{self.session_name}", f"{self.folderuuid}", "a1c0d02c-6d1d-4c23-b8af-c2d75ce96b8d", "Container",
+                "", "mRemoteNG", "General", "", "", "RDP",
+                "DefaultSettings", "3389", "False", "True", "False", "IE",
+                "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
+                "TRUE", "FALSE", "FALSE", "FALSE",
+                "FALSE", "FALSE", "FALSE", "FALSE",
+                "FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
+                "", "", "", "", "", "FALSE", "CompNone",
+                "EncHextile", "AuthVNC", "ProxyNone", "", "0", "",
+                "", "ColNormal", "SmartSAspect", "False", "Never",
+                "", "Yes", "", "",
+                "", "FALSE", "Highest"
+            ]
+            writer.writerow(parentfolder)
 
+    def director(self):
+        print("Constructing reg key for base SIML DMA session...")
         # Construct the base reg key to add a session to the end device for tunneling
         self.construct_reg_key()
 
+        print("Constructing template .csv file for mRemoteNG import...")
+        # Construct the template csv file with proper headers for mRemoteNG import
+        self.mremoteng_import_generator()
+
+        print("Filtering input data to remove unmanaged devices...")
         # Read in and parse .csv file to gather interesting data
         filtered = parse_csv()
 
+        print("Iterating through sanitized data...")
         # Iterate over each row in the filtered data
         for _, row in filtered.iterrows():
             tech_type = row[0]
@@ -111,18 +216,20 @@ class HiveMind:
             descrip = row[3]
             site = row[10]
 
-            self.construct_port_forwards(tech_type)
+            self.construct_port_forwards(tech_type, ip_addr, dev_name, descrip, site)
 
         # Generate port forward string from list
-        print(self.port_forwardings)
         pfwdlist = ",".join(self.port_forwardings)
-        print(pfwdlist)
 
+        print("Putting in the final touches....")
         # Add in port forwards
         with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'a') as f:
             f.write(f""""PortForwardings"=sz:"{pfwdlist}"
                                             """)
 
+        print("Job completed! Please check ./mRemoteNG Sessions - Optanix/ for .reg and .csv!")
+
 
 if __name__ == "__main__":
+    print("Starting up...")
     HiveMind().director()
