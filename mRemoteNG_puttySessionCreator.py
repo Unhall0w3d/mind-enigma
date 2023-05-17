@@ -4,6 +4,7 @@ import pandas as pd
 import glob
 import time
 
+
 def parse_csv():
     # List all .csv files in the current directory
     csv_files = glob.glob("*.csv")
@@ -25,13 +26,14 @@ def parse_csv():
     read_in = pd.read_csv(device_list_path, header=None)  # Indicate that there is no header
 
     # Filter the data based on the device type and column "E"
-    device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "ICM", "Network-Voice"]
+    device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "Network-Voice"]
     filtered = read_in[read_in[0].isin(device_types) & (read_in[4] != 'N')]
     return filtered
 
 
 class HiveMind:
     def __init__(self):
+        self.filename = None
         # Check if the directory exists, create it if it doesn't
         if not os.path.exists('mRemoteNG Sessions - Optanix'):
             os.makedirs('mRemoteNG Sessions - Optanix')
@@ -59,14 +61,10 @@ class HiveMind:
             https_port = random.randint(35000, 40000)
             https_tunnel = f"L{https_port}=localhost:443"
             self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
-        elif tech_type == "ICM":
-            rdp_port = random.randint(18000, 20000)
-            rdp_tunnel = f"L{rdp_port}=localhost:3389"
-            self.port_forwardings.append(f"{ssh_tunnel},{rdp_tunnel}")
 
     def construct_port_forwards(self, tech_type):
         # Get the tunnel configuration
-        self.get_tunnel_config(self, tech_type)
+        self.get_tunnel_config(tech_type)
 
     def construct_reg_key(self):
         # Generate random port number between 20000 and 30000
@@ -78,21 +76,20 @@ class HiveMind:
         # Define the session details
         session_details = f"""Windows Registry Editor Version 5.00 
 
-            {key_path}
+{key_path}
 
-            "HostName"=sz:"localhost"
-            "PortNumber"=dword:{port:08x}
-            "UserName"=sz:"sampson"
-            "PublicKeyFile"=sz:"C:\sampsonppk\Sampson.ppk"
-            "Protocol"="ssh"
-
-            """
+"HostName"=sz:"localhost"
+"PortNumber"=dword:{port:08x}
+"UserName"=sz:"sampson"
+"PublicKeyFile"=sz:"C:\sampsonppk\Sampson.ppk"
+"Protocol"="ssh"
+"""
 
         # Define the filename using the session name and hostname
-        filename = f"{self.session_name}-DMA-Tunnels-{self.timestr}.reg"
+        self.filename = f"{self.session_name}-DMA-Tunnels-{self.timestr}.reg"
 
         # Create a new file and write the session details
-        with open(os.path.join('mRemoteNG Sessions - Optanix', filename), 'w') as f:
+        with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'w') as f:
             f.write(session_details)
 
         # Inform user that the .reg file was created successfully
@@ -122,7 +119,7 @@ class HiveMind:
         print(pfwdlist)
 
         # Add in port forwards
-        with open(os.path.join('mRemoteNG Sessions - Optanix', ), 'a') as f:
+        with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'a') as f:
             f.write(f""""PortForwardings"=sz:"{pfwdlist}"
                                             """)
 
