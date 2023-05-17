@@ -80,25 +80,25 @@ def main():
     for i, file in enumerate(csv_files):
         print(f"{i + 1}. {file}")
 
-        # Get the user's choice
+    # Get the user's choice
     choice = int(input("Enter the number of the file to use: ")) - 1
-    device_list_path = xls_files[choice]
+    device_list_path = csv_files[choice]
 
-    # Read the .xls file
-    df = pd.read_excel(device_list_path, skiprows=1, engine='xlrd') # Skip header row
+    # Read the .csv file
+    df = pd.read_csv(device_list_path, header=None)  # Indicate that there is no header
 
     # Filter the data based on the device type and column "E"
     device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "ICM", "Network-Voice"]
-    df = df[df['A'].isin(device_types) & (df['E'] != 'N')]
+    df = df[df[0].isin(device_types) & (df[4] != 'N')]
 
     # Iterate over each row in the filtered data
     for _, row in df.iterrows():
-        techType = row['A']
-        devName = row['B']
-        descrip = row['D']
-        site = row['K']
+        techType = row[0]
+        devName = row[1]
+        descrip = row[3]
+        site = row[10]
 
-    create_putty_reg_file(session_name, hostname, username, ppk_path, techType, devName, descrip, site)
+        create_putty_reg_file(session_name, hostname, username, ppk_path, techType, devName, descrip, site)
 
 
 if __name__ == "__main__":
