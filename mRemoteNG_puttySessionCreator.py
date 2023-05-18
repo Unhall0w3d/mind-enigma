@@ -61,19 +61,18 @@ class HiveMind:
         Returns the tunnel configuration based on the device type.
         """
         ssh_port = random.randint(30000, 35000)
-        ssh_tunnel = f"L{ssh_port}=localhost:22"
+        ssh_tunnel = f"L{ssh_port}={ip_addr}:22"
 
         if tech_type in ["Network", "Network-Voice"]:
             self.port_forwardings.append(ssh_tunnel)
             sshuuid = generate_uuid()
             with open(
-                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
-                                 'a')) as f:
-                writer = csv.writer(f)
+                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+                writer = csv.writer(f, delimiter=";")
                 data = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
-                    f"{site}_{descrip}", "SSH", "General", f"{ip_addr}", "", "SSH2",
-                    "DefaultSettings", "22", "False", "True", "False", "IE",
+                    f"{site}_{descrip}", "SSH", "General", f"localhost", "", "SSH2",
+                    "DefaultSettings", f"{ssh_port}", "False", "True", "False", "IE",
                     "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
                     "TRUE", "FALSE", "FALSE", "FALSE",
                     "FALSE", "FALSE", "FALSE", "FALSE",
@@ -87,18 +86,16 @@ class HiveMind:
                 writer.writerow(data)
         elif tech_type in ["IPT", "DC-UCS", "DC-VMware"]:
             https_port = random.randint(35000, 40000)
-            https_tunnel = f"L{https_port}=localhost:443"
+            https_tunnel = f"L{https_port}={ip_addr}:443"
             self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
             sshuuid = generate_uuid()
             httpsuuid = generate_uuid()
-            with open(
-                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
-                                 'a')) as f:
-                writer = csv.writer(f)
+            with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+                writer = csv.writer(f, delimiter=";")
                 sshdata = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
-                    f"{site}_{descrip}", "SSH", "General", f"{ip_addr}", "", "SSH2",
-                    "DefaultSettings", "22", "False", "True", "False", "IE",
+                    f"{site}_{descrip}", "SSH", "General", f"localhost", "", "SSH2",
+                    "DefaultSettings", f"{ssh_port}", "False", "True", "False", "IE",
                     "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
                     "TRUE", "FALSE", "FALSE", "FALSE",
                     "FALSE", "FALSE", "FALSE", "FALSE",
@@ -112,8 +109,8 @@ class HiveMind:
                 writer.writerow(sshdata)
                 httpsdata = [
                     f"{tech_type}_{dev_name}_HTTPS", f"{httpsuuid}", f"{self.folderuuid}", "Connection",
-                    f"{site}_{descrip}", "Web Server", "General", f"{ip_addr}", "", "HTTPS",
-                    "DefaultSettings", "443", "False", "True", "False", "IE",
+                    f"{site}_{descrip}", "Web Server", "General", f"localhost", "", "HTTPS",
+                    "DefaultSettings", f"{https_port}", "False", "True", "False", "IE",
                     "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
                     "TRUE", "FALSE", "FALSE", "FALSE",
                     "FALSE", "FALSE", "FALSE", "FALSE",
@@ -142,11 +139,27 @@ class HiveMind:
 
 {key_path}
 
-"HostName"=sz:"localhost"
+"HostName"="localhost"
 "PortNumber"=dword:{port:08x}
-"UserName"=sz:"sampson"
-"PublicKeyFile"=sz:"C:\sampsonppk\Sampson.ppk"
+"UserName"="sampson"
+"KEX"="ecdh,dh-gex-sha1,dh-group14-sha1,rsa,WARN,dh-group1-sha1"
+"HostKey"="ed25519,ecdsa,rsa,dsa,WARN"
+"Cipher"="aes,chacha20,3des,WARN,des,blowfish,arcfour"
 "Protocol"="ssh"
+"SshProt"=dword:3
+"SshNoAuth"=dword:0
+"SshNoShell"=dword:0
+"AuthGSSAPI"=dword:1
+"AuthGSSAPIKEX"=dword:1
+"AuthKI"=dword:1
+"AuthTIS"=dword:0
+"GssapiFwd"=dword:0
+"GssapiRekey"=dword:2
+"GSSCustom"=""
+"GSSLibs"="gssapi32,sspi,custom"
+"SSH2DES"=dword:0
+"SSHManualHostKeys"=""
+"PublicKeyFile"="C:\sampsonppk\Sampson.ppk"
 """
 
         # Define the filename using the session name and hostname
@@ -161,13 +174,13 @@ class HiveMind:
 
     def mremoteng_import_generator(self):
         # Create .csv file
-        with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + self.timestr + 'importFile.csv'),
-                               'w')) as f:
-            writer = csv.writer(f)
+        with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + "-" + self.timestr +
+                                                                '-importFile.csv')), 'w+') as f:
+            writer = csv.writer(f, delimiter=";")
             header = [
                 "Name", "Id", "Parent", "NodeType", "Description", "Icon", "Panel", "Hostname", "VmId", "Protocol",
                 "PuttySession", "Port", "ConnectToConsole", "UseCredSsp", "UseVmId", "RenderingEngine",
-                "ICAEncryptionScrength", "RDPAuthenticationLevel", "LoadBalanceInfo", "Colors", "Resolution",
+                "ICAEncryptionStrength", "RDPAuthenticationLevel", "LoadBalanceInfo", "Colors", "Resolution",
                 "AutomaticResize", "DisplayWallpaper", "DisplayThemes", "EnableFontSmoothing",
                 "EnableDesktopComposition", "CacheBitmaps", "RedirectDiskDrives", "RedirectPorts",
                 "RedirectPrinters", "RedirectClipboard", "RedirectSmartCards", "RedirectSound", "RedirectKeys",
@@ -224,7 +237,7 @@ class HiveMind:
         print("Putting in the final touches....")
         # Add in port forwards
         with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'a') as f:
-            f.write(f""""PortForwardings"=sz:"{pfwdlist}"
+            f.write(f""""PortForwardings"="{pfwdlist}"
                                             """)
 
         print("Job completed! Please check ./mRemoteNG Sessions - Optanix/ for .reg and .csv!")
