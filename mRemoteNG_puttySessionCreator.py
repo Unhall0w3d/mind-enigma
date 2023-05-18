@@ -7,7 +7,7 @@ import csv
 import uuid
 
 
-def parse_csv():
+def analyze_sanitize():
     # List all .csv files in the current directory
     csv_files = glob.glob("*.csv")
 
@@ -33,18 +33,18 @@ def parse_csv():
     return filtered
 
 
-def generate_uuid():
+def generate_chaos():
     return str(uuid.uuid4())
 
 
 class HiveMind:
     def __init__(self):
         self.filename = None
-        self.folderuuid = generate_uuid()
+        self.folderuuid = generate_chaos()
 
         # Check if the directory exists, create it if it doesn't
-        if not os.path.exists('mRemoteNG Sessions - Optanix'):
-            os.makedirs('mRemoteNG Sessions - Optanix')
+        if not os.path.exists('mRemoteNG Sessions'):
+            os.makedirs('mRemoteNG Sessions')
 
         # Establish list to contain port forwarding information
         self.port_forwardings = []
@@ -52,9 +52,8 @@ class HiveMind:
 
         # Collect some data
         self.session_name = input("Enter the session name: ")
-        # self.hostname = input("Enter the hostname/IP: ")
-        # self.username = input("Enter the username: ")
-        # self.ppk_path = input("Enter the .ppk file path: ")
+        self.hostname = input("Enter the hostname/IP: ")
+        self.username = input("Enter the username: ")
 
     def get_tunnel_config(self, tech_type, ip_addr, dev_name, descrip, site):
         """
@@ -65,9 +64,9 @@ class HiveMind:
 
         if tech_type in ["Network", "Network-Voice"]:
             self.port_forwardings.append(ssh_tunnel)
-            sshuuid = generate_uuid()
+            sshuuid = generate_chaos()
             with open(
-                    os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+                    os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
                 writer = csv.writer(f, delimiter=";")
                 data = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
@@ -88,9 +87,9 @@ class HiveMind:
             https_port = random.randint(35000, 40000)
             https_tunnel = f"L{https_port}={ip_addr}:443"
             self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
-            sshuuid = generate_uuid()
-            httpsuuid = generate_uuid()
-            with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+            sshuuid = generate_chaos()
+            httpsuuid = generate_chaos()
+            with open(os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
                 writer = csv.writer(f, delimiter=";")
                 sshdata = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
@@ -139,34 +138,18 @@ class HiveMind:
 
 {key_path}
 
-"HostName"="localhost"
+"HostName"="{self.hostname}"
 "PortNumber"=dword:{port:08x}
-"UserName"="sampson"
-"KEX"="ecdh,dh-gex-sha1,dh-group14-sha1,rsa,WARN,dh-group1-sha1"
-"HostKey"="ed25519,ecdsa,rsa,dsa,WARN"
-"Cipher"="aes,chacha20,3des,WARN,des,blowfish,arcfour"
+"UserName"="{self.username}"
 "Protocol"="ssh"
 "SshProt"=dword:3
-"SshNoAuth"=dword:0
-"SshNoShell"=dword:0
-"AuthGSSAPI"=dword:1
-"AuthGSSAPIKEX"=dword:1
-"AuthKI"=dword:1
-"AuthTIS"=dword:0
-"GssapiFwd"=dword:0
-"GssapiRekey"=dword:2
-"GSSCustom"=""
-"GSSLibs"="gssapi32,sspi,custom"
-"SSH2DES"=dword:0
-"SSHManualHostKeys"=""
-"PublicKeyFile"="C:\sampsonppk\Sampson.ppk"
 """
 
         # Define the filename using the session name and hostname
         self.filename = f"{self.session_name}-DMA-Tunnels-{self.timestr}.reg"
 
         # Create a new file and write the session details
-        with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'w') as f:
+        with open(os.path.join('mRemoteNG Sessions', self.filename), 'w') as f:
             f.write(session_details)
 
         # Inform user that the .reg file was created successfully
@@ -174,7 +157,7 @@ class HiveMind:
 
     def mremoteng_import_generator(self):
         # Create .csv file
-        with open(os.path.join('mRemoteNG Sessions - Optanix', (self.session_name + "-" + self.timestr +
+        with open(os.path.join('mRemoteNG Sessions', (self.session_name + "-" + self.timestr +
                                                                 '-importFile.csv')), 'w+') as f:
             writer = csv.writer(f, delimiter=";")
             header = [
@@ -218,7 +201,7 @@ class HiveMind:
 
         print("Filtering input data to remove unmanaged devices...")
         # Read in and parse .csv file to gather interesting data
-        filtered = parse_csv()
+        filtered = analyze_sanitize()
 
         print("Iterating through sanitized data...")
         # Iterate over each row in the filtered data
@@ -236,11 +219,11 @@ class HiveMind:
 
         print("Putting in the final touches....")
         # Add in port forwards
-        with open(os.path.join('mRemoteNG Sessions - Optanix', self.filename), 'a') as f:
+        with open(os.path.join('mRemoteNG Sessions', self.filename), 'a') as f:
             f.write(f""""PortForwardings"="{pfwdlist}"
                                             """)
 
-        print("Job completed! Please check ./mRemoteNG Sessions - Optanix/ for .reg and .csv!")
+        print("Job completed! Please check ./mRemoteNG Sessions/ for .reg and .csv!")
 
 
 if __name__ == "__main__":
