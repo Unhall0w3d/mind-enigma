@@ -1,3 +1,12 @@
+#!/usr/bin/python
+# -*- code:UTF-8 -*-
+
+#####################################
+# Script created by Ken Perry, 2022 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
+
 import re
 from pyparsing import Word, alphas, Suppress, Combine, nums, string, alphanums, OneOrMore, \
     White, Optional, alphas8bit, ZeroOrMore

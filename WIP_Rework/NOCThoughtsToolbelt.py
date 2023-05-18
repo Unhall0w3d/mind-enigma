@@ -1,4 +1,4 @@
-#!/usr/var/python
+#!/usr/bin/python
 # -*- code:UTF-8 -*-
 
 #####################################

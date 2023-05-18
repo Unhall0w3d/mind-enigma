@@ -1,3 +1,10 @@
+#!/usr/bin/python
+#####################################
+# Script created by Ken Perry, 2023 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
+
 import random
 import os
 import pandas as pd

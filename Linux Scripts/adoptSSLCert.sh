@@ -1,4 +1,10 @@
-#!/bin/bash
+#!/usr/bin/bash
+#####################################
+# Script created by Ken Perry, 2023 #
+#       NOC THOUGHTS BLOG           #
+#    https://www.nocthoughts.com    #
+#####################################
+
 
 # Prompt user to enter the URL of the website
 echo "Please enter the URL of the website (without 'https://'):"
@@ -10,13 +16,17 @@ if [ -z "$website" ]; then
     exit 1
 fi
 
+openssl_cnf_path="/etc/ssl/openssl.cnf"
+
 # Detect system and set the path to the openssl.cnf file
 if [ -f /etc/debian_version ]; then
     # Debian-based system
-    openssl_cnf_path="/etc/ssl/openssl.cnf"
+    dirpath="/usr/local/share/ca-certificates/"
+    command="update-ca-certificates"
 elif [ -f /etc/arch-release ]; then
     # Arch-based system
-    openssl_cnf_path="/etc/ssl/openssl.cnf"
+    dirpath="/etc/ca-certificates/trust-source/anchors/"
+    command="trust extract-compat"
 else
     echo "Error: This script supports only Debian and Arch based systems."
     exit 1
@@ -66,19 +76,19 @@ echo "Connection successful. Extracting certificate chain..."
 awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/ {print $0}' $tempfile > chain.pem
 
 # Status message
-echo "Moving the certificate to the proper location..."
+echo "Moving the certificate to $dirpath..."
 
 # Move the certificate to the proper location
-sudo mv chain.pem /etc/ca-certificates/trust-source/anchors/"$website".pem
+sudo mv chain.pem "$dirpath""$website".pem
 
 # Status message
 echo "Updating the trust database..."
 
 # Update the trust database
-sudo trust extract-compat
+sudo "$command"
 
 # Print the result
-echo "The certificate chain has been saved to /etc/ca-certificates/trust-source/anchors/$website.pem and trusted."
+echo "The certificate chain has been saved to $dirpath$website.pem and trusted."
 
 # Clean up
 echo "Cleaning up temporary files..."
