@@ -36,7 +36,7 @@ def analyze_sanitize():
 
     # Filter the data based on the device type and column "E"
     device_types = ["Network", "DC-UCS", "DC-VMWare", "IPT", "Network-Voice", "Video-TelePresence"]
-    filtered = read_in[read_in[0].isin(device_types) & (read_in[4] != 'N')]
+    filtered = read_in[read_in[0].isin(device_types)]
     return filtered
 
 

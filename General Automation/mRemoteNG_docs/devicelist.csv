@@ -1,0 +1,7 @@
+dev type,hostname,ipaddress,component type,version,model,access method,serial no.,site id,site name
+IPT,example-cucm,192.168.0.100,CUCM Publisher,12.5.1-15000-12,Virtual Machine,SSH/HTTPS,ucs-chassis-serial,alpharetta ga
+DC-UCS
+DC-VMWare
+Video-TelePresence
+Network
+Network-Voice
