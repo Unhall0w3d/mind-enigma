@@ -35,7 +35,7 @@ def analyze_sanitize():
     read_in = pd.read_csv(device_list_path, header=None)  # Indicate that there is no header
 
     # Filter the data based on the device type and column "E"
-    device_types = ["Network", "DC-UCS", "DC-VMware", "IPT", "Network-Voice"]
+    device_types = ["Network", "DC-UCS", "DC-VMWare", "IPT", "Network-Voice", "Video-TelePresence"]
     filtered = read_in[read_in[0].isin(device_types) & (read_in[4] != 'N')]
     return filtered
 
@@ -73,7 +73,8 @@ class HiveMind:
             self.port_forwardings.append(ssh_tunnel)
             sshuuid = generate_chaos()
             with open(
-                    os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+                    os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')),
+                    'a') as f:
                 writer = csv.writer(f, delimiter=";")
                 data = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
@@ -96,7 +97,8 @@ class HiveMind:
             self.port_forwardings.append(f"{ssh_tunnel},{https_tunnel}")
             sshuuid = generate_chaos()
             httpsuuid = generate_chaos()
-            with open(os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')), 'a') as f:
+            with open(os.path.join('mRemoteNG Sessions', (self.session_name + '-' + self.timestr + '-importFile.csv')),
+                      'a') as f:
                 writer = csv.writer(f, delimiter=";")
                 sshdata = [
                     f"{tech_type}_{dev_name}_SSH", f"{sshuuid}", f"{self.folderuuid}", "Connection",
@@ -134,8 +136,6 @@ class HiveMind:
         self.get_tunnel_config(tech_type, ip_addr, dev_name, descrip, site)
 
     def construct_reg_key(self):
-        # Generate random port number between 20000 and 30000
-        port = random.randint(20000, 30000)
 
         # Define registry key path
         key_path = r"[HKEY_CURRENT_USER\Software\SimonTatham\PuTTY\Sessions\{}]".format(self.session_name)
@@ -146,7 +146,7 @@ class HiveMind:
 {key_path}
 
 "HostName"="{self.hostname}"
-"PortNumber"=dword:{port:08x}
+"PortNumber"=dword:{22:08x}
 "UserName"="{self.username}"
 "Protocol"="ssh"
 "SshProt"=dword:3
@@ -165,7 +165,7 @@ class HiveMind:
     def mremoteng_import_generator(self):
         # Create .csv file
         with open(os.path.join('mRemoteNG Sessions', (self.session_name + "-" + self.timestr +
-                                                                '-importFile.csv')), 'w+') as f:
+                                                      '-importFile.csv')), 'w+') as f:
             writer = csv.writer(f, delimiter=";")
             header = [
                 "Name", "Id", "Parent", "NodeType", "Description", "Icon", "Panel", "Hostname", "VmId", "Protocol",
