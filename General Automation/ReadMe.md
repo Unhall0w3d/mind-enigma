@@ -4,13 +4,11 @@
 #####################################
 
 # Input File
--Input File ./mRemoteNG_docs/devicelist.csv is a tempalate that can be followed to create the input csv file. The valid device types are
-listed, as well as an example line.
--The script will feed in every line and, based on the device type, hostname, ip address, component and sitename construct
-both the registry keys to add the PuTTY session and the .csv file that can be imported into mRemoteNG based on the
-port forwards built in the reg key.
--The devicelist.csv file should be in the same directory as the script when run. It will search for all .csv files within
-the current working directory and present the files found as selectable options.
+-Input File ./mRemoteNG_docs/devicelist.csv is a tempalate that can be followed to create the input csv file. The valid device types are listed, as well as an example line.
+
+-The script will feed in every line and, based on the device type, hostname, ip address, component and sitename construct both the registry keys to add the PuTTY session and the .csv file that can be imported into mRemoteNG based on the port forwards built in the reg key.
+
+-The devicelist.csv file should be in the same directory as the script when run. It will search for all .csv files within the current working directory and present the files found as selectable options.
 
 # Running The Script
 python mRemoteNG_puttySessionCreator.py
