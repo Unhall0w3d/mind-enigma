@@ -83,7 +83,7 @@ class HiveMind:
                     "EncrBasic", "NoAuth", "", "Colors16Bit", "FitToWindow",
                     "TRUE", "FALSE", "FALSE", "FALSE",
                     "FALSE", "FALSE", "FALSE", "FALSE",
-                    "FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
+                    " FALSE", "FALSE", "FALSE", "DoNotPlay", "FALSE",
                     "", "", "", "", "", "FALSE", "CompNone",
                     "EncHextile", "AuthVNC", "ProxyNone", "", "0", "",
                     "", "ColNormal", "SmartSAspect", "False", "Never",
@@ -153,7 +153,7 @@ class HiveMind:
 """
 
         # Define the filename using the session name and hostname
-        self.filename = f"{self.session_name}-DMA-Tunnels-{self.timestr}.reg"
+        self.filename = f"{self.session_name}-SSH-Tunnels-{self.timestr}.reg"
 
         # Create a new file and write the session details
         with open(os.path.join('mRemoteNG Sessions', self.filename), 'w') as f:
@@ -198,7 +198,8 @@ class HiveMind:
             writer.writerow(parentfolder)
 
     def director(self):
-        print("Constructing reg key for base SIML DMA session...")
+        print(f"Constructing reg key for PuTTY {self.session_name} session...")
+
         # Construct the base reg key to add a session to the end device for tunneling
         self.construct_reg_key()
 
@@ -217,7 +218,7 @@ class HiveMind:
             ip_addr = row[2]
             dev_name = row[1]
             descrip = row[3]
-            site = row[10]
+            site = row[9]
 
             self.construct_port_forwards(tech_type, ip_addr, dev_name, descrip, site)
 

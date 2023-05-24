@@ -1,7 +1,7 @@
 dev type,hostname,ipaddress,component type,version,model,access method,serial no.,site id,site name
-IPT,example-cucm,192.168.0.100,CUCM Publisher,12.5.1-15000-12,Virtual Machine,SSH/HTTPS,ucs-chassis-serial,alpharetta ga
-DC-UCS
-DC-VMWare
-Video-TelePresence
-Network
-Network-Voice
+IPT,example-cucm,192.168.0.100,CUCM Publisher,12.5.1-15000-12,Virtual Machine,SSH/HTTPS,ucs-chassis-serial,BNY101,Buffalo NY
+DC-UCS,example-ucsc-cimc,192.168.0.121,C220 M4SX,4.0(3b),Cisco UCS C220 M4SX,SSH/HTTPS,ucs-chassis-serial,BNY101,Buffalo NY
+DC-VMWare,example-esxi,192.168.0.111,ESXi Host,6.5u3b,VMWare ESXi,SSH/HTTPS,vmware-serial-num,BNY101,Buffalo NY
+Video-TelePresence,example-expressway-vcs-C/E,192.168.0.151,Expressway/VCS C/E,14.x,Cisco Expressway C 1A,SSH/HTTPS,expressway-serial-num,BNY101,Buffalo NY
+Network,example-rtr1,192.168.0.1,Cisco ISR,IOS-XE Fuji,Cisco ISR 2XXX,SSH,rtr-chassis-serial-num,BNY101,Buffalo NY
+Network-Voice,example-cube|sbc_or_vg2xx|3xx,192.168.0.11,Cisco CUBE,IOS-XE Fuji,Cisco ASR 1K,SSH,chassis-serial-num,BNY,Buffalo NY
