@@ -207,7 +207,7 @@ class HiveMind:
         # Construct the template csv file with proper headers for mRemoteNG import
         self.mremoteng_import_generator()
 
-        print("Filtering input data to remove unmanaged devices...")
+        print("Filtering input data...")
         # Read in and parse .csv file to gather interesting data
         filtered = analyze_sanitize()
 
@@ -225,7 +225,7 @@ class HiveMind:
         # Generate port forward string from list
         pfwdlist = ",".join(self.port_forwardings)
 
-        print("Putting in the final touches....")
+        print("Putting in the final touches...")
         # Add in port forwards
         with open(os.path.join('mRemoteNG Sessions', self.filename), 'a') as f:
             f.write(f""""PortForwardings"="{pfwdlist}"
