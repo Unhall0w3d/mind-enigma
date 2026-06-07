@@ -42,14 +42,17 @@ COMMON_COMMANDS = [
     'show version inactive',
     'show hardware',
     'show network cluster',
-    'show perf query class Processor',
-    'show perf query class Memory',
     'utils service list',
     'utils ntp status',
     'utils disaster_recovery history backup',
     'utils disaster_recovery status backup',
     'utils dbreplication runtimestate',
     'utils core active list'
+]
+
+PERFORMANCE_COMMANDS = [
+    'show perf query class Processor',
+    'show perf query class Memory'
 ]
 
 
@@ -63,7 +66,7 @@ TECHNOLOGIES = {
         "name": "Cisco CallManager (CUCM)",
         "short_name": "CUCM",
         "file_prefix": "CCMHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'show risdb query misc phone phonefailed cmnode cmgroup cti ctiextn uone huntlist ctimlist gateway sip mediaresource h323',
             'exit'
         ]
@@ -82,7 +85,7 @@ TECHNOLOGIES = {
         "name": "Cisco Unity Connection (CUC)",
         "short_name": "CUC",
         "file_prefix": "CUCHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'show cuc cluster status',
             'exit'
         ]
@@ -92,7 +95,7 @@ TECHNOLOGIES = {
         "name": "Cisco Unified Intelligence Center (CUIC)",
         "short_name": "CUIC",
         "file_prefix": "CUICHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'show live-data failover',
             'show socketio status',
             'exit'
@@ -103,7 +106,7 @@ TECHNOLOGIES = {
         "name": "Cisco Finesse",
         "short_name": "FIN",
         "file_prefix": "FINHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'exit'
         ]
     },
@@ -112,7 +115,7 @@ TECHNOLOGIES = {
         "name": "Cisco IM & Presence (IMP)",
         "short_name": "IMP",
         "file_prefix": "IMPHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'utils ha status',
             'utils imdb_replication status',
             'show perf query counter "Cisco XCP CM" "CmConnectedSockets"',
@@ -128,7 +131,7 @@ TECHNOLOGIES = {
         "name": "Cisco MediaSense",
         "short_name": "MS",
         "file_prefix": "MSHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'show tech call_control_service',
             'show db_synchronization status db_ora_config',
             'show db_synchronization status db_ora_meta',
@@ -140,7 +143,7 @@ TECHNOLOGIES = {
         "name": "Cisco Prime License Manager (PLM)",
         "short_name": "PLM",
         "file_prefix": "PLMHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'license management list users',
             'license management show system',
             'exit'
@@ -151,7 +154,7 @@ TECHNOLOGIES = {
         "name": "Cisco UCCX",
         "short_name": "UCCX",
         "file_prefix": "UCCXHealthCheck",
-        "commands": COMMON_COMMANDS + [
+        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
             'show uccx jtapi_client version',
             'show uccx license',
             'show uccx livedata connections',

@@ -6,8 +6,10 @@ Cisco Collaboration Health Report Runner
 Usage:
     python health_report.py <run_folder>
 
-This is the first-stage parser/report runner. It does not perform health scoring yet.
-It inventories the collected files and verifies section parsing is working.
+This runner parses a completed health-check output folder and produces:
+- a terminal summary
+- HealthReport_<timestamp>.txt
+- HealthReport_<timestamp>.md
 """
 
 import os
@@ -52,20 +54,20 @@ def write_report_files(run_folder, parsed_run):
         f'HealthReport_{timestamp}.md'
     )
 
-    text_output = uc_common.render_inventory_text(parsed_run)
-    markdown_output = uc_common.render_inventory_markdown(parsed_run)
+    text_output = uc_common.render_health_report_text(parsed_run)
+    markdown_output = uc_common.render_health_report_markdown(parsed_run)
 
     tech_parser = load_tech_specific_parser(parsed_run['technology'])
 
     if tech_parser is not None:
         tech_result = tech_parser.parse_run(parsed_run)
-        text_output += '\n\n' + '=' * 80 + '\nTechnology-Specific Parser\n' + '=' * 80 + '\n'
+        text_output += '\n\n' + '=' * 100 + '\nTechnology-Specific Parser\n' + '=' * 100 + '\n'
         text_output += f"Parser: {tech_result.get('technology_specific_parser')}\n"
         text_output += f"Status: {tech_result.get('status')}\n"
         for note in tech_result.get('notes', []):
             text_output += f"- {note}\n"
 
-        markdown_output += '\n## Technology-Specific Parser\n\n'
+        markdown_output += '\n\n## Technology-Specific Parser\n\n'
         markdown_output += f"- Parser: `{tech_result.get('technology_specific_parser')}`\n"
         markdown_output += f"- Status: `{tech_result.get('status')}`\n"
         for note in tech_result.get('notes', []):
