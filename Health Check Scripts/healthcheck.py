@@ -128,18 +128,6 @@ TECHNOLOGIES = {
     },
 
     "7": {
-        "name": "Cisco MediaSense",
-        "short_name": "MS",
-        "file_prefix": "MSHealthCheck",
-        "commands": COMMON_COMMANDS + PERFORMANCE_COMMANDS + [
-            'show tech call_control_service',
-            'show db_synchronization status db_ora_config',
-            'show db_synchronization status db_ora_meta',
-            'exit'
-        ]
-    },
-
-    "8": {
         "name": "Cisco Prime License Manager (PLM)",
         "short_name": "PLM",
         "file_prefix": "PLMHealthCheck",
@@ -150,7 +138,7 @@ TECHNOLOGIES = {
         ]
     },
 
-    "9": {
+    "8": {
         "name": "Cisco UCCX",
         "short_name": "UCCX",
         "file_prefix": "UCCXHealthCheck",
@@ -895,154 +883,199 @@ def run_health_checks(
             )
         )
 
-        sshconnect = None
-
-        try:
-
-            if ping_host(host):
-
-                print(
-                    Fore.GREEN +
-                    f"[PING SUCCESS] "
-                    f"{host}"
-                )
-
-            else:
-
-                print(
-                    Fore.YELLOW +
-                    f"[PING FAILED] "
-                    f"{host} "
-                    f"(Attempting SSH anyway)"
-                )
-
-            sshconnect = (
-                paramiko.SSHClient()
-            )
-
-            sshconnect.set_missing_host_key_policy(
-                paramiko.AutoAddPolicy()
-            )
-
-            sshconnect.connect(
-                hostname=host,
-                username=username,
-                password=password
-            )
-
-            interact = (
-                SSHClientInteraction(
-                    sshconnect,
-                    timeout=60,
-                    display=True
-                )
-            )
-
-            previous_command = "Connected"
-
-            for command in (
-                technology[
-                    "commands"
-                ]
-            ):
-
-                interact.expect(
-                    'admin:'
-                )
-
-                devoutput = (
-                    interact.current_output_clean
-                )
-
-                write_command_output(
-                    output_file,
-                    previous_command,
-                    devoutput
-                )
-
-                interact.send(
-                    command
-                )
-
-                previous_command = command
-
-            sshconnect.close()
+        if ping_host(host):
 
             print(
-                '\n' +
                 Fore.GREEN +
-                f"[SUCCESS] "
+                f"[PING SUCCESS] "
                 f"{host}"
             )
 
-            results.append({
-                "host": host,
-                "result":
-                    "Connected Successfully",
-                "status":
-                    "green",
-                "file":
-                    output_filename,
-                "failure_type":
-                    None
-            })
-
-        except paramiko.ssh_exception.AuthenticationException:
+        else:
 
             print(
                 Fore.YELLOW +
-                f"[FAILED] "
+                f"[PING FAILED] "
                 f"{host} "
-                f"(Authentication)"
+                f"(Attempting SSH anyway)"
             )
 
-            results.append({
-                "host": host,
-                "result":
-                    "Authentication Failed",
-                "status":
-                    "yellow",
-                "file":
-                    output_filename,
-                "failure_type":
-                    "auth"
-            })
+        def attempt_health_check(
+            password_to_use,
+            retry=False
+        ):
 
-        except Exception as error:
-
-            print(
-                Fore.RED +
-                f"[FAILED] "
-                f"{host} "
-                f"(SSH)"
-            )
-
-            print(
-                Fore.RED +
-                str(error)
-            )
-
-            results.append({
-                "host": host,
-                "result":
-                    "SSH Connection Failed",
-                "status":
-                    "red",
-                "file":
-                    output_filename,
-                "failure_type":
-                    "connection"
-            })
-
-        finally:
+            sshconnect = None
 
             try:
 
-                if sshconnect is not None:
-                    sshconnect.close()
+                if retry:
 
-            except Exception:
-                pass
+                    print(
+                        Fore.YELLOW +
+                        f"[RETRY] "
+                        f"Attempting SSH authentication again for "
+                        f"{host}"
+                    )
+
+                sshconnect = (
+                    paramiko.SSHClient()
+                )
+
+                sshconnect.set_missing_host_key_policy(
+                    paramiko.AutoAddPolicy()
+                )
+
+                sshconnect.connect(
+                    hostname=host,
+                    username=username,
+                    password=password_to_use
+                )
+
+                interact = (
+                    SSHClientInteraction(
+                        sshconnect,
+                        timeout=60,
+                        display=True
+                    )
+                )
+
+                previous_command = "Connected"
+
+                for command in (
+                    technology[
+                        "commands"
+                    ]
+                ):
+
+                    interact.expect(
+                        'admin:'
+                    )
+
+                    devoutput = (
+                        interact.current_output_clean
+                    )
+
+                    write_command_output(
+                        output_file,
+                        previous_command,
+                        devoutput
+                    )
+
+                    interact.send(
+                        command
+                    )
+
+                    previous_command = command
+
+                sshconnect.close()
+
+                print(
+                    '\n' +
+                    Fore.GREEN +
+                    f"[SUCCESS] "
+                    f"{host}"
+                )
+
+                return {
+                    "host": host,
+                    "result":
+                        "Connected Successfully",
+                    "status":
+                        "green",
+                    "file":
+                        output_filename,
+                    "failure_type":
+                        None
+                }
+
+            except paramiko.ssh_exception.AuthenticationException:
+
+                return {
+                    "host": host,
+                    "result":
+                        "Authentication Failed",
+                    "status":
+                        "yellow",
+                    "file":
+                        output_filename,
+                    "failure_type":
+                        "auth"
+                }
+
+            except Exception as error:
+
+                print(
+                    Fore.RED +
+                    f"[FAILED] "
+                    f"{host} "
+                    f"(SSH)"
+                )
+
+                print(
+                    Fore.RED +
+                    str(error)
+                )
+
+                return {
+                    "host": host,
+                    "result":
+                        "SSH Connection Failed",
+                    "status":
+                        "red",
+                    "file":
+                        output_filename,
+                    "failure_type":
+                        "connection"
+                }
+
+            finally:
+
+                try:
+
+                    if sshconnect is not None:
+                        sshconnect.close()
+
+                except Exception:
+                    pass
+
+        result = attempt_health_check(
+            password
+        )
+
+        if result[
+            "failure_type"
+        ] == "auth":
+
+            print(
+                Fore.YELLOW +
+                f"[AUTH FAILURE] "
+                f"{host}"
+            )
+
+            retry_password = input(
+                f"Password for {host}: "
+            )
+
+            result = attempt_health_check(
+                retry_password,
+                retry=True
+            )
+
+            if result[
+                "failure_type"
+            ] == "auth":
+
+                print(
+                    Fore.YELLOW +
+                    f"[FAILED] "
+                    f"{host} "
+                    f"(Authentication)"
+                )
+
+        results.append(
+            result
+        )
 
     return results
 
@@ -1061,6 +1094,49 @@ def session(
 
     if profile is None:
         return
+
+    print()
+    print('=' * 70)
+    print(
+        'Run Option'
+    )
+    print('=' * 70)
+    print()
+    print(
+        '[H] Health Check'
+    )
+    print(
+        '[P] Parse Existing Output'
+    )
+    print(
+        '[Q] Cancel'
+    )
+    print()
+
+    while True:
+
+        run_option = input(
+            'Selection: '
+        ).strip().lower()
+
+        if run_option == 'h':
+            break
+
+        elif run_option == 'p':
+
+            run_parse_from_recent_output(
+                technology
+            )
+
+            return
+
+        elif run_option == 'q':
+            return
+
+        else:
+            print(
+                'Invalid selection.'
+            )
 
     username, password = (
         get_credentials()
@@ -1284,6 +1360,132 @@ def launch_health_report(
             report_script,
             output_path
         ]
+    )
+
+
+def get_recent_output_folders(
+    technology,
+    limit=5
+):
+
+    if os.path.exists(BASE_OUTPUT_FOLDER) is False:
+        return []
+
+    short_name = technology[
+        'short_name'
+    ]
+
+    prefix = (
+        f'{short_name}_'
+    )
+
+    folders = []
+
+    for item in os.listdir(
+        BASE_OUTPUT_FOLDER
+    ):
+
+        path = os.path.join(
+            BASE_OUTPUT_FOLDER,
+            item
+        )
+
+        if os.path.isdir(path) is False:
+            continue
+
+        if item.startswith(prefix) is False:
+            continue
+
+        folders.append(path)
+
+    folders.sort(
+        key=lambda path: os.path.getmtime(path),
+        reverse=True
+    )
+
+    return folders[:limit]
+
+
+def select_output_folder_for_parsing(
+    technology
+):
+
+    folders = get_recent_output_folders(
+        technology
+    )
+
+    print()
+    print('=' * 70)
+    print(
+        'Recent Output Folders'
+    )
+    print('=' * 70)
+    print()
+
+    if len(folders) == 0:
+
+        print(
+            Fore.YELLOW +
+            '[INFO] '
+            'No output folders were found for this technology.'
+        )
+
+        return None
+
+    for index, folder in enumerate(
+        folders,
+        start=1
+    ):
+
+        print(
+            f'{index}. '
+            f'{folder}'
+        )
+
+    print()
+    print('Q. Cancel')
+    print()
+
+    while True:
+
+        selection = input(
+            'Selection: '
+        ).strip().lower()
+
+        if selection == 'q':
+            return None
+
+        if selection.isdigit():
+
+            index = int(selection)
+
+            if (
+                index >= 1
+                and index <= len(folders)
+            ):
+
+                return folders[
+                    index - 1
+                ]
+
+        print(
+            'Invalid selection.'
+        )
+
+
+def run_parse_from_recent_output(
+    technology
+):
+
+    output_path = select_output_folder_for_parsing(
+        technology
+    )
+
+    if output_path is None:
+        return
+
+    launch_health_report(
+        output_path
     )
 
 

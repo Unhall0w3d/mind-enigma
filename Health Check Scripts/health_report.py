@@ -7,7 +7,7 @@ Usage:
     python health_report.py <run_folder>
 
 This runner parses a completed health-check output folder and produces:
-- a terminal summary
+- terminal report output
 - HealthReport_<timestamp>.txt
 - HealthReport_<timestamp>.md
 """
@@ -16,6 +16,7 @@ import os
 import sys
 
 from parsers import uc_common
+import report_builder
 
 
 TECH_SPECIFIC_PARSERS = {
@@ -41,6 +42,25 @@ def load_tech_specific_parser(technology):
         return None
 
 
+def add_technology_specific_results(parsed_run):
+    tech_parser = load_tech_specific_parser(parsed_run.get('technology'))
+
+    if tech_parser is None:
+        parsed_run['technology_specific'] = None
+        return parsed_run
+
+    try:
+        parsed_run['technology_specific'] = tech_parser.parse_run(parsed_run)
+    except Exception as error:
+        parsed_run['technology_specific'] = {
+            'technology_specific_parser': tech_parser.__name__,
+            'status': 'error',
+            'notes': [str(error)]
+        }
+
+    return parsed_run
+
+
 def write_report_files(run_folder, parsed_run):
     timestamp = parsed_run['timestamp']
 
@@ -54,24 +74,8 @@ def write_report_files(run_folder, parsed_run):
         f'HealthReport_{timestamp}.md'
     )
 
-    text_output = uc_common.render_health_report_text(parsed_run)
-    markdown_output = uc_common.render_health_report_markdown(parsed_run)
-
-    tech_parser = load_tech_specific_parser(parsed_run['technology'])
-
-    if tech_parser is not None:
-        tech_result = tech_parser.parse_run(parsed_run)
-        text_output += '\n\n' + '=' * 100 + '\nTechnology-Specific Parser\n' + '=' * 100 + '\n'
-        text_output += f"Parser: {tech_result.get('technology_specific_parser')}\n"
-        text_output += f"Status: {tech_result.get('status')}\n"
-        for note in tech_result.get('notes', []):
-            text_output += f"- {note}\n"
-
-        markdown_output += '\n\n## Technology-Specific Parser\n\n'
-        markdown_output += f"- Parser: `{tech_result.get('technology_specific_parser')}`\n"
-        markdown_output += f"- Status: `{tech_result.get('status')}`\n"
-        for note in tech_result.get('notes', []):
-            markdown_output += f"- {note}\n"
+    text_output = report_builder.render_text(parsed_run)
+    markdown_output = report_builder.render_markdown(parsed_run)
 
     with open(text_report, 'w', encoding='utf-8') as file_write:
         file_write.write(text_output)
@@ -93,6 +97,8 @@ def main():
         sys.exit(1)
 
     parsed_run = uc_common.parse_run_folder(run_folder)
+    parsed_run = add_technology_specific_results(parsed_run)
+
     text_report, markdown_report, text_output = write_report_files(
         run_folder,
         parsed_run
